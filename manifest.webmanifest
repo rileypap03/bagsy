@@ -1,0 +1,16 @@
+{
+  "name": "Bagsy Trips",
+  "short_name": "Bagsy",
+  "description": "Save for a trip together. Each of you bagsies your part.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#22408C",
+  "theme_color": "#F1F3F2",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
