@@ -115,12 +115,15 @@ function dueChecks(){
 }
 
 /* ---------- avatars ---------- */
-const DEFAULT_AV = {skin:'s2',hairColour:'brown',hairStyle:'short',facial:'none',glasses:'none',bg:'sun'};
-function av(key,s=32,t){
+const newAv = () => ({ bag:hashPick(user&&user.id,BAGS), col:'mustard' });
+function av(key,s=40,t){
   const prof = key&&!String(key).startsWith('partner:') ? A&&A.profiles[key] : null;
-  if(prof&&prof.avatar) return `<span class="av" style="width:${s}px;height:${s}px;overflow:hidden">${avatarSVG(prof.avatar,s)}</span>`;
-  const nm = prof ? prof.name : t ? (t.partnerName||'?') : '?';
-  return `<span class="av ${key===(user&&user.id)?'P':'I'}" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.4)}px" aria-hidden="true">${esc((nm||'?')[0].toUpperCase())}</span>`;
+  if(prof){ let b=bagOf(key,prof.avatar);
+    /* two people on one trip never share a colour: the other person shows their next one */
+    if(t&&key!==user.id){ const mine=bagOf(user.id,me().avatar); if(mine.col===b.col) b={...b,col:COL_ORDER[(COL_ORDER.indexOf(b.col)+1)%COL_ORDER.length]}; }
+    return `<span class="av bag" style="width:${s}px;height:${s}px">${bagImg(b.bag,b.col,s)}</span>`; }
+  const nm = t ? (t.partnerName||'?') : '?';   // invited but not joined yet: their initial in a dashed ring
+  return `<span class="av I" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.4)}px" aria-hidden="true">${esc((nm||'?')[0].toUpperCase())}</span>`;
 }
 
 /* ---------- rendering ---------- */
@@ -180,10 +183,10 @@ function newPassword(){
     :`<span class="b" style="font-size:18px">That link has run out</span><p class="sm muted" style="margin:0">Reset links only work once and for a short time. Ask for a new one.</p><button class="btn" data-act="forgot">Send a new link</button>`}</div></div>`;
 }
 function onboarding(){
-  const d = sheet&&sheet.type==='onboard' ? sheet.draft : (sheet={type:'onboard',draft:{...DEFAULT_AV},name:''}).draft;
-  return `<div class="auth">${banner()}<div style="padding:8px 8px 0"><h1>Welcome to Bagsy</h1><p class="muted" style="margin:6px 0 0">Tell us your name and make your avatar. Your trip partner sees both.</p></div>
+  const d = sheet&&sheet.type==='onboard' ? sheet.draft : (sheet={type:'onboard',draft:newAv(),name:''}).draft;
+  return `<div class="auth">${banner()}<div style="padding:8px 8px 0"><h1>Welcome to Bagsy</h1><p class="muted" style="margin:6px 0 0">Tell us your name and bagsy a bag. Your trip partner sees both.</p></div>
   <div class="card" style="display:flex;flex-direction:column;gap:16px"><label class="b" for="nm">Your first name</label><input id="nm" class="field" autocomplete="given-name" value="${esc(sheet.name)}" placeholder="Paul">
-  <div style="display:grid;place-items:center">${avatarSVG(d,120)}</div>${avatarControls(d)}
+  ${avatarControls(d)}
   <button class="btn" data-act="finishOnboard">Let’s go</button></div></div>`;
 }
 function trips(){
@@ -191,7 +194,7 @@ function trips(){
   let h=`<div class="pad">${banner()}<div class="top"><h1>Trips</h1><button class="round" data-act="plan" aria-label="Plan a trip">${I(IC.plus,18,2.4)}</button></div>`;
   if(!live.length) h+=`<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h1 style="font-size:24px">Where to next?</h1><p class="muted" style="margin:0">Plan a trip, split it into parts, and invite the person you’re going with.</p><button class="btn" data-act="plan">Plan a trip</button></div>`;
   else { h+=`<h2>Coming up</h2>`; for(const t of live){ const tot=total(t),sv=savedOf(t),pct=tot?Math.round(sv/tot*100):0, pt=partnerOf(t);
-    h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div style="position:relative;height:148px;background:var(--masthead)">${stars(4)}${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px;background:rgba(255,255,255,.18);color:#fff;box-shadow:none">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:12px;top:12px;display:flex">${[user.id].concat(pt?[pt.id]:[]).map((p,i)=>`<span style="margin-left:${i?-6:0}px;border-radius:50%;box-shadow:0 0 0 2px var(--masthead);display:flex">${av(p,28,t)}</span>`).join('')}</span></div>
+    h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div style="position:relative;height:148px;background:var(--masthead)">${stars(4)}${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px;background:rgba(255,255,255,.18);color:#fff;box-shadow:none">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:10px;top:6px;display:flex;gap:2px">${[user.id].concat(pt?[pt.id]:[]).map(p=>av(p,44,t)).join('')}</span></div>
     <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px"><div class="row" style="align-items:flex-end"><div class="col"><span class="cap muted">${tripDates(t)} · ${weeksTo(t.start)} weeks to go</span><span style="font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.03em">${money(sv)} <span class="muted" style="font-size:15px;font-weight:500;letter-spacing:0">of ${money(tot)}</span></span></div><span class="sm b ok" style="padding-bottom:4px">${pct}% covered</span></div>
     <div style="display:flex;gap:3px;height:6px">${t.parts.map(p=>`<span class="bar" style="flex:${p.cost||1}"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span>`).join('')}</div>
     ${pt&&!pt.joined?`<span class="notice" style="padding:10px 12px;align-items:center"><span class="b" style="color:var(--ink)">Invite ${esc(pt.name)}</span> They haven’t joined yet</span>`:''}
@@ -206,16 +209,16 @@ function tripView(t){
   const nxt = mine.length?`Next saving <b style="color:#fff">${money(mine.reduce((s,p)=>s+Math.min(p.amt,p.cost-p.saved),0))} on ${fmt(nextFriday())}</b>`:`No saving due from you this week`;
   const people=[user.id].concat(pt?[pt.id]:[]);
   let h=`<div class="mast">${stars(8)}${scene(t)}<div class="in"><div class="row" style="width:100%;justify-content:space-between;height:52px"><button class="round veil" data-act="home" aria-label="Back">${I(IC.back)}</button><span class="pill" style="background:rgba(255,255,255,.16);color:#fff;box-shadow:none;font-size:15px">${flag(t)}${esc(t.place)}</span><button class="round veil" data-act="tripSettings" aria-label="Trip settings">${I(IC.gear,18,2)}</button></div>
-  <div class="row" style="gap:8px;margin-top:18px;color:var(--on-mast-muted)"><span style="display:flex">${people.map((p,i)=>`<span style="margin-left:${i?-6:0}px;border-radius:50%;box-shadow:0 0 0 2px var(--masthead);display:flex">${av(p,26,t)}</span>`).join('')}</span>${tripDates(t)}${pt?' · you and '+esc(pt.name):''}</div>
+  <div class="row" style="gap:8px;margin-top:18px;color:var(--on-mast-muted)"><span style="display:flex;gap:2px">${people.map(p=>av(p,36,t)).join('')}</span>${tripDates(t)}${pt?' · you and '+esc(pt.name):''}</div>
   <div class="amt">${money(sv)}</div><div style="margin-top:8px;color:var(--on-mast-muted)"><b style="color:var(--ok-mast)">${pct}% covered</b> of ${money(tot)} · ${weeksTo(t.start)} weeks to go</div>
   <div class="split" style="width:280px;margin-top:16px">${t.parts.map(p=>`<span style="flex:${p.cost||1}"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span>`).join('')}</div>
   <div class="row sm" style="gap:6px;margin-top:14px;color:var(--on-mast-muted)">${I(IC.refresh,15,2.4).replace('currentColor','var(--ok-mast)')}${nxt}</div></div></div><div class="pad" style="padding-top:12px">${banner()}`;
-  if(pt&&!pt.joined) h+=`<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${av(pt.id,40,t)}<div class="col"><span class="b" style="font-size:16px">Invite ${esc(pt.name)}</span><span class="cap muted">Send the link. They sign in with their email and the parts you set aside become theirs.</span></div></div><div class="codebox"><span class="cap muted">Invite code</span><span class="code-big">${esc(t.code)}</span></div><button class="btn" data-act="share" data-trip="${t.id}">${I(IC.share,18,2.2)} Share invite link</button></div>`;
+  if(pt&&!pt.joined) h+=`<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${av(pt.id,44,t)}<div class="col"><span class="b" style="font-size:16px">Invite ${esc(pt.name)}</span><span class="cap muted">Send the link. They sign in with their email and the parts you set aside become theirs.</span></div></div><div class="codebox"><span class="cap muted">Invite code</span><span class="code-big">${esc(t.code)}</span></div><button class="btn" data-act="share" data-trip="${t.id}">${I(IC.share,18,2.2)} Share invite link</button></div>`;
   const owners = people.concat(t.parts.some(p=>!ownerKey(t,p))?[null]:[]);
   for(const who of owners){
     const ps=t.parts.filter(p=>ownerKey(t,p)===who); if(who===null&&!ps.length) continue;
     const s1=ps.reduce((s,p)=>s+Math.min(p.saved,p.cost),0), s2=ps.reduce((s,p)=>s+p.cost,0), mineCard = who===user.id;
-    h+=`<div class="card" style="padding:16px 16px 0"><div class="row" style="gap:10px;padding-bottom:8px">${who?av(who,32,t):`<span class="av I" style="width:32px;height:32px">?</span>`}<span class="b" style="flex:1;font-size:16px;font-weight:700">${who===null?'Nobody yet':mineCard?esc(me().name)+' (you)':esc(nameOf(t,who))}</span><span class="sm muted"><b style="color:var(--ink)">${money(s1)}</b> of ${money(s2)}</span></div>`;
+    h+=`<div class="card" style="padding:16px 16px 0"><div class="row" style="gap:10px;padding-bottom:8px">${who?av(who,48,t):`<span class="av I" style="width:40px;height:40px">?</span>`}<span class="b" style="flex:1;font-size:16px;font-weight:700">${who===null?'Nobody yet':mineCard?esc(me().name)+' (you)':esc(nameOf(t,who))}</span><span class="sm muted"><b style="color:var(--ink)">${money(s1)}</b> of ${money(s2)}</span></div>`;
     if(!ps.length) h+=`<p class="sm muted" style="margin:0 0 12px">Nothing bagsied yet.</p>`;
     for(const p of ps){ const st=status(p);
       h+=`<button data-part="${p.id}" style="display:flex;gap:12px;padding:12px 0;width:100%;border:0;background:none;text-align:left">${partIcon(p.name)}<span class="col" style="gap:8px"><span class="row" style="align-items:flex-start;gap:8px"><span class="col"><span style="font-size:16px;font-weight:500">${esc(p.name)}</span><span class="cap muted">${p.deposit>0&&p.saved<p.cost?(depLeft(p)?`Deposit ${money(p.deposit)} by ${fmt(D(p.depositDue),false)} · rest by ${fmt(D(p.due),false)}`:`Deposit covered · rest by ${fmt(D(p.due),false)}`):`Due ${fmt(D(p.due),false)}`} · ${p.method==='none'&&!mineCard?'Not set up yet':how(p)}</span></span><span class="col" style="flex:none;align-items:flex-end"><span class="b" style="font-size:16px">${money(p.saved)}</span><span class="cap ${st.txt==='Packed'?'ok':'muted'}" style="font-weight:500">${st.txt==='Packed'?'Packed':'of '+money(p.cost)}</span></span></span><span class="bar" style="height:4px;position:relative"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i>${p.deposit>0&&p.deposit<p.cost?`<b class="depmark" style="left:${p.deposit/p.cost*100}%"></b>`:''}</span></span></button>`;
@@ -252,7 +255,7 @@ function activity(){
   const groups={}; for(const r of rows){ const g=lab(localDay(r.e.created_at)); (groups[g]=groups[g]||[]).push(r); }
   for(const g of ['Today','Yesterday','Earlier this week','Last week','Earlier']) if(groups[g]){ h+=`<div class="grp">${g}</div><div class="card" style="padding:4px 16px">`+groups[g].map(({e,t},i)=>{
     const x=AKIND(e,t), dd=new Date(e.created_at), when=g==='Today'||g==='Yesterday'?dd.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):g==='Earlier'?fmt(D(localDay(e.created_at)),false):DN[dd.getDay()];
-    const lead = x.lead&&x.lead.startsWith('part:')?partIcon(x.lead.slice(5)).replace('class="ico img"','class="ico img" style="width:36px;height:36px"').replace('<img ','<img style="width:40px;height:40px;margin:-2px" '):av(e.user_id,36,t);
+    const lead = x.lead&&x.lead.startsWith('part:')?partIcon(x.lead.slice(5)).replace('class="ico img"','class="ico img" style="width:36px;height:36px"').replace('<img ','<img style="width:40px;height:40px;margin:-2px" '):av(e.user_id,40,t);
     return `<div class="row" style="align-items:flex-start;padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${lead}<div class="col"><span style="font-weight:500">${x.text}</span><span class="cap muted">${when}${x.meta?' · '+x.meta:''}</span></div>${x.amt?`<div class="col" style="flex:none;align-items:flex-end"><span class="b">${esc(x.amt)}</span><span class="cap ${x.k||'muted'}" style="font-weight:500">${esc(x.tag||'')}</span></div>`:''}</div>`; }).join('')+`</div>`; }
   return h+`</div>`;
 }
@@ -263,10 +266,10 @@ function you(){
   const partners={}; for(const t of A.trips){ const pt=partnerOf(t); if(pt){ (partners[pt.id]=partners[pt.id]||{pt,t,trips:[]}).trips.push(t.place); } }
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  return `<div class="pad">${banner()}<div class="top"><h1>You</h1></div><div class="card row"><button class="avbtn" data-act="editMe" aria-label="Change your name and avatar">${av(user.id,44)}<span class="pen" aria-hidden="true">${I(IC.pen,12,2.2)}</span></button><div class="col"><span class="b" style="font-size:17px">${esc(me().name)}</span><span class="cap muted">${esc(user.email||'')}</span></div></div>
+  return `<div class="pad">${banner()}<div class="top"><h1>You</h1></div><div class="card row"><button class="avbtn" data-act="editMe" aria-label="Change your name and bag">${av(user.id,72)}<span class="pen" aria-hidden="true">${I(IC.pen,12,2.2)}</span></button><div class="col"><span class="b" style="font-size:17px">${esc(me().name)}</span><span class="cap muted">${esc(user.email||'')}</span></div></div>
   <h2>Your saving</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="row" style="align-items:baseline"><span style="font-size:26px;font-weight:700;letter-spacing:-.03em">${money(s1)}</span><span class="muted">of ${money(s2)}</span><span class="sm b ${behind?'behind':'ok'}" style="margin-left:auto">${!mine.length?'':behind?'Something’s behind':'On track'}</span></div><span class="bar"><i style="width:${s2?s1/s2*100:0}%"></i></span><span class="cap muted">Payment-day checks show up in Activity${navigator.setAppBadge?' and on the app icon':''}.</span></div>
   ${mine.length?`<h2>Where your money sits</h2><div class="card" style="padding:4px 16px">${mine.map(({t,p},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${partIcon(p.name)}<div class="col"><span class="b">${esc(p.name)}</span><span class="cap muted">${esc(t.place)} · ${p.method==='none'?'Not set up yet':p.method==='paid'?'Paid in full':p.method==='adhoc'?'As and when':(p.method==='pot'?'A pot in my banking app':'Another account')+(p.into?' · '+esc(p.into):'')}</span></div></div>`).join('')}<p class="cap muted">Bagsy never moves your money. Your partner sees what you’ve saved for each part, never your balance.</p></div>`:''}
-  ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,32,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
+  ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,44,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
   <h2>Notifications</h2>${notifyCard(standalone,ios)}
   ${standalone?'':`<h2>Put Bagsy on your home screen</h2><div class="card sm" style="display:flex;flex-direction:column;gap:6px">${ios?`<span>1. Open this page in <b>Safari</b>.</span><span>2. Tap the Share button, then <b>Add to Home Screen</b>.</span><span>3. Open Bagsy from your home screen and sign in once more.</span>`:`<span>Open your browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.</span>`}</div>`}
   <button class="btn sec" data-act="signOut" style="margin-top:12px">Sign out</button>
@@ -446,16 +449,15 @@ function logSheet(){
   <button class="btn" data-act="doLog" ${busy?'disabled':''}>Log ${d.amt?money(d.amt):'it'}</button>`:''}
   <span class="cap muted row" style="justify-content:center;gap:6px">${I(IC.lock,14,2)} Logging only records it. Bagsy never moves your money.</span>`);
 }
+/* pick a bag and a strap colour */
 function avatarControls(d){
-  const O=AV_OPTS;
-  const chips=k=>`<div class="chips">${Object.entries(O[k]).map(([v,l])=>`<button class="chip" data-avk="${k}" data-avv="${v}" aria-pressed="${d[k]===v}">${l}</button>`).join('')}</div>`;
-  const sw=(k,label)=>`<div class="chips" role="group" aria-label="${label}">${Object.entries(O[k]).map(([v,c])=>`<button class="sw" style="background:${c}" data-avk="${k}" data-avv="${v}" aria-pressed="${d[k]===v}" aria-label="${label} ${v}"></button>`).join('')}</div>`;
-  const row=(t,c)=>`<div style="display:flex;flex-direction:column;gap:8px"><span class="b">${t}</span>${c}</div>`;
-  return row('Hair',chips('hairStyle'))+row('Hair colour',sw('hairColour','Hair colour'))+row('Skin',sw('skin','Skin tone'))+row('Face',chips('facial'))+row('Glasses',chips('glasses'))+row('Background',sw('bg','Background'));
+  return `<div style="display:grid;place-items:center;padding:4px 0">${bagImg(d.bag,d.col,128,'bagav big')}</div>
+  <div style="display:flex;flex-direction:column;gap:8px"><span class="b">Your bag</span><div class="bagpick" role="group" aria-label="Your bag">${BAGS.map(b=>`<button data-avk="bag" data-avv="${b}" aria-pressed="${d.bag===b}" aria-label="${BAG_NAMES[b]}">${bagImg(b,d.col,56)}</button>`).join('')}</div></div>
+  <div style="display:flex;flex-direction:column;gap:8px"><span class="b">Strap colour</span><div class="chips" role="group" aria-label="Strap colour">${COL_ORDER.map(c=>`<button class="sw" style="background:${BAG_SWATCH[c]}" data-avk="col" data-avv="${c}" aria-pressed="${d.col===c}" aria-label="${c}"></button>`).join('')}</div><span class="cap muted">Your trip partner sees your bag next to your name. If you both pick the same colour, theirs shifts on your phone so you can tell you apart.</span></div>`;
 }
 function avatarSheet(){
   const d=sheet.draft;
-  return wrap('avatar','avt',`${sheetHead('avt','You')}<label class="b" for="nm2">Your first name</label><input id="nm2" class="field" value="${esc(sheet.name)}"><div style="display:grid;place-items:center">${avatarSVG(d,120)}</div>${avatarControls(d)}<button class="btn" data-act="saveMe" ${busy?'disabled':''}>Save</button>`);
+  return wrap('avatar','avt',`${sheetHead('avt','You')}<label class="b" for="nm2">Your first name</label><input id="nm2" class="field" value="${esc(sheet.name)}">${avatarControls(d)}<button class="btn" data-act="saveMe" ${busy?'disabled':''}>Save</button>`);
 }
 async function loadInvite(s){ try{ s.preview = await api.invitePreview(s.code); }catch(e){ s.preview=null; s.err=friendly(e); } if(sheet===s) renderLayer(); }
 function joinSheet(){
@@ -565,8 +567,8 @@ document.addEventListener('click',async e=>{
     case 'pushOff': pushOff(); break;
     case 'pushTest': try{ const n=await api.testPush(); showToast(n?'Sent. It should pop up in a few seconds.':'No phones are signed up yet. Turn notifications on first.'); }catch(err){ fail(err); } break;
     case 'finishOnboard': { const nm=(document.getElementById('nm').value||'').trim(); if(!nm){ document.getElementById('nm').focus(); return; } try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); sheet=null; await reload(); }catch(err){ fail(err); } break; }
-    case 'editMe': sheet={type:'avatar',name:me().name,draft:{...DEFAULT_AV,...(me().avatar||{})}}; renderLayer(); break;
-    case 'saveMe': { const nm=(document.getElementById('nm2').value||'').trim()||me().name; busy=true; renderLayer(); try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); busy=false; sheet=null; await reload(); showToast('Saved. Your trip partners see the new look.'); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
+    case 'editMe': sheet={type:'avatar',name:me().name,draft:bagOf(user.id,me().avatar)}; renderLayer(); break;
+    case 'saveMe': { const nm=(document.getElementById('nm2').value||'').trim()||me().name; busy=true; renderLayer(); try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); busy=false; sheet=null; await reload(); showToast('Saved. Your trip partner sees your bag.'); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
     case 'plan': startPlan(); break;
     case 'home': UI.screen={name:'tabs'}; UI.tab='trips'; render(); break;
     case 'planback': if(plan.step>1){ plan.step--; render(); } else { plan=null; UI.screen={name:'tabs'}; render(); } view.scrollTop=0; break;

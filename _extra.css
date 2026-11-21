@@ -37,3 +37,15 @@ html.app,html.app body{background:var(--surface-page)}
 html,body{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none;touch-action:pan-y}
 .scroll,.sheet{overflow-x:hidden;overscroll-behavior:none}
 .phone{touch-action:pan-y}
+/* bag avatars */
+.av.bag{background:none;border-radius:0;overflow:visible;display:block}
+.bagav{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(60,40,0,.18))}
+.bagav.big{width:128px;height:128px;filter:drop-shadow(0 6px 10px rgba(60,40,0,.18))}
+.mast .bagav,.card .bagav{filter:drop-shadow(0 2px 3px rgba(20,20,40,.25))}
+.av.I{background:transparent;border:1.5px dashed var(--line-control);color:var(--ink-muted)}
+.mast .av.I,[style*="masthead"] .av.I{border-color:rgba(255,255,255,.6);color:#fff}
+.bagpick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bagpick button{height:76px;border-radius:14px;border:0;background:var(--surface-page);display:grid;place-items:center;padding:6px}
+.bagpick button img{width:56px;height:56px}
+.bagpick button[aria-pressed=true]{background:#fff;outline:2px solid var(--ink);outline-offset:-2px}
+.avbtn .pen{right:-4px;bottom:2px}

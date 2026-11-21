@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='d1ea4086';
+window.BAGSY_VERSION='5b5e1b4b';
 {
 /* ---------- location scenes ---------- */
 const SC = {sky:'#22408C',far:'#3456A8',far2:'#2C4C9E',mid:'#1F3578',near:'#16214A',cream:'#F4EAD3',shade:'#E0CFAD',brass:'#D9A441',yellow:'#FFC53D',terra:'#C8603F',peach:'#F2B48A',blue:'#A9BDEB',rose:'#E58F7B',green:'#2E6A58',green2:'#245446',glow:'#FFD27A',water:'#2A4A9C'};
@@ -75,49 +75,34 @@ const SCENES = {
 function scene(t){ const k=sceneKind(t), f=SCENES[k]||SCENES.coast; return `<svg class="scene" viewBox="0 0 390 160" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${f()}</svg>`; }
 const stars = n => `<svg aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 390 470">${[[40,70],[90,40],[180,30],[250,60],[300,140],[60,150],[370,40],[140,120]].slice(0,n).map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.4" fill="#C9D6FF"/>`).join('')}</svg>`;
 const flag = t => (t.place||'').trim().toLowerCase()==='lisbon'?`<svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><rect width="10" height="24" fill="#046A38"/><rect x="10" width="14" height="24" fill="#DA291C"/><circle cx="10" cy="12" r="3.8" fill="#FFE000"/></svg>`:`<span class="flag" aria-hidden="true">${esc(((t.place||'?')[0]||'?').toUpperCase())}</span>`;
-/* ---------- illustrated avatars ---------- */
-const AV_OPTS = {
-  skin:{s1:'#F7DCCB',s2:'#EDC3A4',s3:'#D9A27D',s4:'#B97D55',s5:'#8D5A3B',s6:'#5E3B26'},
-  hairColour:{black:'#231C1A',dark:'#4A3426',brown:'#7A5236',blonde:'#D9B068',red:'#A9502C',grey:'#A29E98',white:'#E6E2DC'},
-  hairStyle:{short:'Short',messy:'Messy',long:'Long',curly:'Curly',bun:'Bun',buzz:'Buzz',bald:'Bald'},
-  facial:{none:'None',stubble:'Stubble',beard:'Beard',moustache:'Tache'},
-  glasses:{none:'None',round:'Round',square:'Square'},
-  bg:{sun:'#FFE29A',sky:'#DCE7FF',mint:'#DDF1E3',peach:'#FBE1D2',sand:'#EFE6D4'}
-};
-var avSeq=0;
-function shade(hex,f){ const n=parseInt(hex.slice(1),16); const c=[n>>16,(n>>8)&255,n&255].map(v=>Math.max(0,Math.min(255,Math.round(v*f)))); return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join(''); }
-function avatarSVG(a,s){
-  const id='avc'+(avSeq++), O=AV_OPTS, sk=O.skin[a.skin]||O.skin.s2, hc=O.hairColour[a.hairColour]||O.hairColour.dark, bg=O.bg[a.bg]||O.bg.sun, skd=shade(sk,.86), ink='#2A2522';
-  const shirt=a.bg==='sky'?'#C99A3B':'#22408C';
-  let back='',front='';
-  const cap='M19.6 29 Q19 14.6 32 14.4 Q45 14.6 44.4 29 Q42.5 21.5 34 20.6 Q25.5 20.6 21 25 Z';
-  if(a.hairStyle==='long') back=`<path d="M18.4 30 Q17.6 13.6 32 13.4 Q46.4 13.6 45.6 30 L47 52 Q32 56 17 52 Z" fill="${hc}"/>`;
-  if(a.hairStyle==='curly') back=[[20,26,6],[44,26,6],[19,34,5],[45,34,5]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${hc}"/>`).join('');
-  if(a.hairStyle==='bun') back=`<circle cx="32" cy="11.5" r="5.5" fill="${hc}"/>`;
-  if(a.hairStyle==='short'||a.hairStyle==='bun') front=`<path d="${cap}" fill="${hc}"/>`;
-  if(a.hairStyle==='buzz') front=`<path d="${cap}" fill="${hc}" opacity=".5"/>`;
-  if(a.hairStyle==='messy') front=`<path d="M19.6 29 Q18.6 15 27 13.6 L29 11 L31.5 13.2 L34.5 10.8 L36 13.6 Q45.4 15.4 44.4 29 Q43 21.8 36.5 20.2 L33 22.4 L31 19.8 Q24 20.4 21 25 Z" fill="${hc}"/>`;
-  if(a.hairStyle==='long') front=`<path d="M19.6 31 Q19 15.2 32 15 Q45 15.2 44.4 31 Q41.5 21 33 19.8 Q25.5 21 19.6 31 Z" fill="${hc}"/>`;
-  if(a.hairStyle==='curly') front=[[22,19,5],[28,15.5,5.5],[35,15,5.5],[41,18.5,5],[25,21,4],[38,21,4]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${hc}"/>`).join('');
-  let face='';
-  if(a.facial==='stubble') face=`<path d="M20.6 31 Q21 43.6 32 44.4 Q43 43.6 43.4 31 Q42 39 36.5 40 Q32 38.4 27.5 40 Q22 39 20.6 31 Z" fill="${hc}" opacity=".38"/>`;
-  if(a.facial==='beard') face=`<path d="M20 29.5 Q19.8 46.8 32 47 Q44.2 46.8 44 29.5 Q43.6 35.6 38.6 35.4 Q35.4 34.2 32 34.9 Q28.6 34.2 25.4 35.4 Q20.4 35.6 20 29.5 Z" fill="${hc}"/>`;
-  if(a.facial==='moustache') face=`<path d="M27.2 36 Q32 33.2 36.8 36 Q32 37.2 27.2 36 Z" fill="${hc}"/>`;
-  const mouthCol=a.facial==='beard'?shade(sk,.7):'#7A3B2E';
-  let gl='';
-  if(a.glasses==='round') gl=`<g fill="none" stroke="${ink}" stroke-width="1.2" stroke-linecap="round"><circle cx="27" cy="29.6" r="3.7"/><circle cx="37" cy="29.6" r="3.7"/><path d="M30.7 29.4 Q32 28.4 33.3 29.4M23.3 29 L19.6 28.4M40.7 29 L44.4 28.4"/></g>`;
-  if(a.glasses==='square') gl=`<g fill="none" stroke="${ink}" stroke-width="1.2" stroke-linecap="round"><rect x="22.8" y="26.6" width="8.2" height="6.2" rx="1.6"/><rect x="33" y="26.6" width="8.2" height="6.2" rx="1.6"/><path d="M31 29.2 H33M22.8 28.6 L19.6 28.2M41.2 28.6 L44.4 28.2"/></g>`;
-  const brow=a.hairStyle==='bald'||a.hairStyle==='buzz'?shade(hc,.8):hc;
-  return `<svg class="avsvg" width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="${id}"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#${id})">
-  <rect width="64" height="64" fill="${bg}"/>${back}
-  <path d="M10 66 Q12 50.5 32 49.5 Q52 50.5 54 66 Z" fill="${shirt}"/><path d="M27.5 38 H36.5 V49 Q32 52 27.5 49 Z" fill="${skd}"/>
-  <circle cx="20" cy="31" r="3" fill="${skd}"/><circle cx="44" cy="31" r="3" fill="${skd}"/>
-  <ellipse cx="32" cy="29.5" rx="12" ry="14" fill="${sk}"/>${face}${front}
-  <path d="M24.6 25.6 Q27 24.4 29.4 25.4 M34.6 25.4 Q37 24.4 39.4 25.6" stroke="${brow}" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-  <circle cx="27" cy="29.6" r="1.35" fill="${ink}"/><circle cx="37" cy="29.6" r="1.35" fill="${ink}"/>
-  <path d="M32 30.5 Q30.6 34.4 32.6 34.8" stroke="${skd}" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  ${a.facial==='beard'?`<path d="M28.6 37.6 Q32 40.6 35.4 37.6 Q32 38.8 28.6 37.6 Z" fill="#8B4A3C"/>`:`<path d="M28.8 37.4 Q32 39.8 35.2 37.4" stroke="${mouthCol}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`}${gl}</g></svg>`;
+/* ---------- bag avatars: everyone bagsies a bag, with straps in their colour ---------- */
+const BAGS = ['suitcase','backpack','duffel','hatbox','trunk','tote','satchel','bumbag'];
+const BAG_NAMES = {suitcase:'Suitcase',backpack:'Backpack',duffel:'Duffel',hatbox:'Hatbox',trunk:'Trunk',tote:'Tote',satchel:'Satchel',bumbag:'Bum bag'};
+const BAG_COLS = {mustard:null, terracotta:'#C8603F', sage:'#7E9B7A', blue:'#5F82B0', pink:'#D98A95', navy:'#2C3A5A'};
+const BAG_SWATCH = {mustard:'#E2AE3A', terracotta:'#C8603F', sage:'#7E9B7A', blue:'#5F82B0', pink:'#D98A95', navy:'#2C3A5A'};
+const COL_ORDER = Object.keys(BAG_COLS);
+/* a steady default for anyone who hasn't picked (or still has an old drawn avatar) */
+function hashPick(id, list){ let h=0; for(const c of String(id||'x')) h=(h*31+c.charCodeAt(0))>>>0; return list[h%list.length]; }
+function bagOf(id, avatar){ const a=avatar||{}; return { bag: BAGS.includes(a.bag)?a.bag:hashPick(id,BAGS), col: BAG_COLS.hasOwnProperty(a.col)?a.col:hashPick(id+'c',COL_ORDER) }; }
+
+/* recolour the mustard straps in the browser, once per bag and colour, and remember the result */
+const bagCache = {}, bagWaiting = {};
+function hexHsv(h){ const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255; const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn; let hu=0; if(d){ hu=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4; hu/=6; if(hu<0) hu+=1; } return [hu,mx?d/mx:0,mx]; }
+function hsvRgb(h,s,v){ const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s); return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6]; }
+function bagSrc(bag,col){
+  const base=`img/bag-${bag}.png`, hex=BAG_COLS[col]; if(!hex) return base;
+  const k=bag+'/'+col; if(bagCache[k]) return bagCache[k];
+  if(!bagWaiting[k]){ bagWaiting[k]=true; const im=new Image(); im.onload=()=>{ try{
+      const c=document.createElement('canvas'); c.width=im.naturalWidth; c.height=im.naturalHeight; const x=c.getContext('2d'); x.drawImage(im,0,0);
+      const d=x.getImageData(0,0,c.width,c.height), p=d.data, [th,ts,tv]=hexHsv(hex);
+      for(let i=0;i<p.length;i+=4){ if(!p[i+3]) continue; const [h,s,v]=hexHsv('#'+[p[i],p[i+1],p[i+2]].map(n=>n.toString(16).padStart(2,'0')).join(''));
+        if(h>0.08&&h<0.17&&s>0.45){ const nv=Math.min(1,v*(tv<0.6?tv/0.85:Math.min(1.1,tv/0.85))); const [r,g,b]=hsvRgb(th,Math.min(1,ts*(s/0.7)),nv); p[i]=r*255; p[i+1]=g*255; p[i+2]=b*255; } }
+      x.putImageData(d,0,0); bagCache[k]=c.toDataURL('image/png');
+      document.querySelectorAll(`img[data-bag="${k}"]`).forEach(el=>{ el.src=bagCache[k]; });
+    }catch(e){} }; im.src=base; }
+  return base;   // shows the mustard one for a moment, then swaps in place
 }
+function bagImg(bag,col,s,cls='bagav'){ return `<img class="${cls}" data-bag="${bag}/${col}" src="${bagSrc(bag,col)}" width="${s}" height="${s}" alt="" aria-hidden="true">`; }
 /* ---------- basics ---------- */
 const api = window.bagsyApi;
 const DAY = 864e5;
@@ -235,12 +220,15 @@ function dueChecks(){
 }
 
 /* ---------- avatars ---------- */
-const DEFAULT_AV = {skin:'s2',hairColour:'brown',hairStyle:'short',facial:'none',glasses:'none',bg:'sun'};
-function av(key,s=32,t){
+const newAv = () => ({ bag:hashPick(user&&user.id,BAGS), col:'mustard' });
+function av(key,s=40,t){
   const prof = key&&!String(key).startsWith('partner:') ? A&&A.profiles[key] : null;
-  if(prof&&prof.avatar) return `<span class="av" style="width:${s}px;height:${s}px;overflow:hidden">${avatarSVG(prof.avatar,s)}</span>`;
-  const nm = prof ? prof.name : t ? (t.partnerName||'?') : '?';
-  return `<span class="av ${key===(user&&user.id)?'P':'I'}" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.4)}px" aria-hidden="true">${esc((nm||'?')[0].toUpperCase())}</span>`;
+  if(prof){ let b=bagOf(key,prof.avatar);
+    /* two people on one trip never share a colour: the other person shows their next one */
+    if(t&&key!==user.id){ const mine=bagOf(user.id,me().avatar); if(mine.col===b.col) b={...b,col:COL_ORDER[(COL_ORDER.indexOf(b.col)+1)%COL_ORDER.length]}; }
+    return `<span class="av bag" style="width:${s}px;height:${s}px">${bagImg(b.bag,b.col,s)}</span>`; }
+  const nm = t ? (t.partnerName||'?') : '?';   // invited but not joined yet: their initial in a dashed ring
+  return `<span class="av I" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.4)}px" aria-hidden="true">${esc((nm||'?')[0].toUpperCase())}</span>`;
 }
 
 /* ---------- rendering ---------- */
@@ -300,10 +288,10 @@ function newPassword(){
     :`<span class="b" style="font-size:18px">That link has run out</span><p class="sm muted" style="margin:0">Reset links only work once and for a short time. Ask for a new one.</p><button class="btn" data-act="forgot">Send a new link</button>`}</div></div>`;
 }
 function onboarding(){
-  const d = sheet&&sheet.type==='onboard' ? sheet.draft : (sheet={type:'onboard',draft:{...DEFAULT_AV},name:''}).draft;
-  return `<div class="auth">${banner()}<div style="padding:8px 8px 0"><h1>Welcome to Bagsy</h1><p class="muted" style="margin:6px 0 0">Tell us your name and make your avatar. Your trip partner sees both.</p></div>
+  const d = sheet&&sheet.type==='onboard' ? sheet.draft : (sheet={type:'onboard',draft:newAv(),name:''}).draft;
+  return `<div class="auth">${banner()}<div style="padding:8px 8px 0"><h1>Welcome to Bagsy</h1><p class="muted" style="margin:6px 0 0">Tell us your name and bagsy a bag. Your trip partner sees both.</p></div>
   <div class="card" style="display:flex;flex-direction:column;gap:16px"><label class="b" for="nm">Your first name</label><input id="nm" class="field" autocomplete="given-name" value="${esc(sheet.name)}" placeholder="Paul">
-  <div style="display:grid;place-items:center">${avatarSVG(d,120)}</div>${avatarControls(d)}
+  ${avatarControls(d)}
   <button class="btn" data-act="finishOnboard">Let’s go</button></div></div>`;
 }
 function trips(){
@@ -311,7 +299,7 @@ function trips(){
   let h=`<div class="pad">${banner()}<div class="top"><h1>Trips</h1><button class="round" data-act="plan" aria-label="Plan a trip">${I(IC.plus,18,2.4)}</button></div>`;
   if(!live.length) h+=`<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h1 style="font-size:24px">Where to next?</h1><p class="muted" style="margin:0">Plan a trip, split it into parts, and invite the person you’re going with.</p><button class="btn" data-act="plan">Plan a trip</button></div>`;
   else { h+=`<h2>Coming up</h2>`; for(const t of live){ const tot=total(t),sv=savedOf(t),pct=tot?Math.round(sv/tot*100):0, pt=partnerOf(t);
-    h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div style="position:relative;height:148px;background:var(--masthead)">${stars(4)}${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px;background:rgba(255,255,255,.18);color:#fff;box-shadow:none">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:12px;top:12px;display:flex">${[user.id].concat(pt?[pt.id]:[]).map((p,i)=>`<span style="margin-left:${i?-6:0}px;border-radius:50%;box-shadow:0 0 0 2px var(--masthead);display:flex">${av(p,28,t)}</span>`).join('')}</span></div>
+    h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div style="position:relative;height:148px;background:var(--masthead)">${stars(4)}${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px;background:rgba(255,255,255,.18);color:#fff;box-shadow:none">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:10px;top:6px;display:flex;gap:2px">${[user.id].concat(pt?[pt.id]:[]).map(p=>av(p,44,t)).join('')}</span></div>
     <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px"><div class="row" style="align-items:flex-end"><div class="col"><span class="cap muted">${tripDates(t)} · ${weeksTo(t.start)} weeks to go</span><span style="font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.03em">${money(sv)} <span class="muted" style="font-size:15px;font-weight:500;letter-spacing:0">of ${money(tot)}</span></span></div><span class="sm b ok" style="padding-bottom:4px">${pct}% covered</span></div>
     <div style="display:flex;gap:3px;height:6px">${t.parts.map(p=>`<span class="bar" style="flex:${p.cost||1}"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span>`).join('')}</div>
     ${pt&&!pt.joined?`<span class="notice" style="padding:10px 12px;align-items:center"><span class="b" style="color:var(--ink)">Invite ${esc(pt.name)}</span> They haven’t joined yet</span>`:''}
@@ -326,16 +314,16 @@ function tripView(t){
   const nxt = mine.length?`Next saving <b style="color:#fff">${money(mine.reduce((s,p)=>s+Math.min(p.amt,p.cost-p.saved),0))} on ${fmt(nextFriday())}</b>`:`No saving due from you this week`;
   const people=[user.id].concat(pt?[pt.id]:[]);
   let h=`<div class="mast">${stars(8)}${scene(t)}<div class="in"><div class="row" style="width:100%;justify-content:space-between;height:52px"><button class="round veil" data-act="home" aria-label="Back">${I(IC.back)}</button><span class="pill" style="background:rgba(255,255,255,.16);color:#fff;box-shadow:none;font-size:15px">${flag(t)}${esc(t.place)}</span><button class="round veil" data-act="tripSettings" aria-label="Trip settings">${I(IC.gear,18,2)}</button></div>
-  <div class="row" style="gap:8px;margin-top:18px;color:var(--on-mast-muted)"><span style="display:flex">${people.map((p,i)=>`<span style="margin-left:${i?-6:0}px;border-radius:50%;box-shadow:0 0 0 2px var(--masthead);display:flex">${av(p,26,t)}</span>`).join('')}</span>${tripDates(t)}${pt?' · you and '+esc(pt.name):''}</div>
+  <div class="row" style="gap:8px;margin-top:18px;color:var(--on-mast-muted)"><span style="display:flex;gap:2px">${people.map(p=>av(p,36,t)).join('')}</span>${tripDates(t)}${pt?' · you and '+esc(pt.name):''}</div>
   <div class="amt">${money(sv)}</div><div style="margin-top:8px;color:var(--on-mast-muted)"><b style="color:var(--ok-mast)">${pct}% covered</b> of ${money(tot)} · ${weeksTo(t.start)} weeks to go</div>
   <div class="split" style="width:280px;margin-top:16px">${t.parts.map(p=>`<span style="flex:${p.cost||1}"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span>`).join('')}</div>
   <div class="row sm" style="gap:6px;margin-top:14px;color:var(--on-mast-muted)">${I(IC.refresh,15,2.4).replace('currentColor','var(--ok-mast)')}${nxt}</div></div></div><div class="pad" style="padding-top:12px">${banner()}`;
-  if(pt&&!pt.joined) h+=`<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${av(pt.id,40,t)}<div class="col"><span class="b" style="font-size:16px">Invite ${esc(pt.name)}</span><span class="cap muted">Send the link. They sign in with their email and the parts you set aside become theirs.</span></div></div><div class="codebox"><span class="cap muted">Invite code</span><span class="code-big">${esc(t.code)}</span></div><button class="btn" data-act="share" data-trip="${t.id}">${I(IC.share,18,2.2)} Share invite link</button></div>`;
+  if(pt&&!pt.joined) h+=`<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${av(pt.id,44,t)}<div class="col"><span class="b" style="font-size:16px">Invite ${esc(pt.name)}</span><span class="cap muted">Send the link. They sign in with their email and the parts you set aside become theirs.</span></div></div><div class="codebox"><span class="cap muted">Invite code</span><span class="code-big">${esc(t.code)}</span></div><button class="btn" data-act="share" data-trip="${t.id}">${I(IC.share,18,2.2)} Share invite link</button></div>`;
   const owners = people.concat(t.parts.some(p=>!ownerKey(t,p))?[null]:[]);
   for(const who of owners){
     const ps=t.parts.filter(p=>ownerKey(t,p)===who); if(who===null&&!ps.length) continue;
     const s1=ps.reduce((s,p)=>s+Math.min(p.saved,p.cost),0), s2=ps.reduce((s,p)=>s+p.cost,0), mineCard = who===user.id;
-    h+=`<div class="card" style="padding:16px 16px 0"><div class="row" style="gap:10px;padding-bottom:8px">${who?av(who,32,t):`<span class="av I" style="width:32px;height:32px">?</span>`}<span class="b" style="flex:1;font-size:16px;font-weight:700">${who===null?'Nobody yet':mineCard?esc(me().name)+' (you)':esc(nameOf(t,who))}</span><span class="sm muted"><b style="color:var(--ink)">${money(s1)}</b> of ${money(s2)}</span></div>`;
+    h+=`<div class="card" style="padding:16px 16px 0"><div class="row" style="gap:10px;padding-bottom:8px">${who?av(who,48,t):`<span class="av I" style="width:40px;height:40px">?</span>`}<span class="b" style="flex:1;font-size:16px;font-weight:700">${who===null?'Nobody yet':mineCard?esc(me().name)+' (you)':esc(nameOf(t,who))}</span><span class="sm muted"><b style="color:var(--ink)">${money(s1)}</b> of ${money(s2)}</span></div>`;
     if(!ps.length) h+=`<p class="sm muted" style="margin:0 0 12px">Nothing bagsied yet.</p>`;
     for(const p of ps){ const st=status(p);
       h+=`<button data-part="${p.id}" style="display:flex;gap:12px;padding:12px 0;width:100%;border:0;background:none;text-align:left">${partIcon(p.name)}<span class="col" style="gap:8px"><span class="row" style="align-items:flex-start;gap:8px"><span class="col"><span style="font-size:16px;font-weight:500">${esc(p.name)}</span><span class="cap muted">${p.deposit>0&&p.saved<p.cost?(depLeft(p)?`Deposit ${money(p.deposit)} by ${fmt(D(p.depositDue),false)} · rest by ${fmt(D(p.due),false)}`:`Deposit covered · rest by ${fmt(D(p.due),false)}`):`Due ${fmt(D(p.due),false)}`} · ${p.method==='none'&&!mineCard?'Not set up yet':how(p)}</span></span><span class="col" style="flex:none;align-items:flex-end"><span class="b" style="font-size:16px">${money(p.saved)}</span><span class="cap ${st.txt==='Packed'?'ok':'muted'}" style="font-weight:500">${st.txt==='Packed'?'Packed':'of '+money(p.cost)}</span></span></span><span class="bar" style="height:4px;position:relative"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i>${p.deposit>0&&p.deposit<p.cost?`<b class="depmark" style="left:${p.deposit/p.cost*100}%"></b>`:''}</span></span></button>`;
@@ -372,7 +360,7 @@ function activity(){
   const groups={}; for(const r of rows){ const g=lab(localDay(r.e.created_at)); (groups[g]=groups[g]||[]).push(r); }
   for(const g of ['Today','Yesterday','Earlier this week','Last week','Earlier']) if(groups[g]){ h+=`<div class="grp">${g}</div><div class="card" style="padding:4px 16px">`+groups[g].map(({e,t},i)=>{
     const x=AKIND(e,t), dd=new Date(e.created_at), when=g==='Today'||g==='Yesterday'?dd.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):g==='Earlier'?fmt(D(localDay(e.created_at)),false):DN[dd.getDay()];
-    const lead = x.lead&&x.lead.startsWith('part:')?partIcon(x.lead.slice(5)).replace('class="ico img"','class="ico img" style="width:36px;height:36px"').replace('<img ','<img style="width:40px;height:40px;margin:-2px" '):av(e.user_id,36,t);
+    const lead = x.lead&&x.lead.startsWith('part:')?partIcon(x.lead.slice(5)).replace('class="ico img"','class="ico img" style="width:36px;height:36px"').replace('<img ','<img style="width:40px;height:40px;margin:-2px" '):av(e.user_id,40,t);
     return `<div class="row" style="align-items:flex-start;padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${lead}<div class="col"><span style="font-weight:500">${x.text}</span><span class="cap muted">${when}${x.meta?' · '+x.meta:''}</span></div>${x.amt?`<div class="col" style="flex:none;align-items:flex-end"><span class="b">${esc(x.amt)}</span><span class="cap ${x.k||'muted'}" style="font-weight:500">${esc(x.tag||'')}</span></div>`:''}</div>`; }).join('')+`</div>`; }
   return h+`</div>`;
 }
@@ -383,10 +371,10 @@ function you(){
   const partners={}; for(const t of A.trips){ const pt=partnerOf(t); if(pt){ (partners[pt.id]=partners[pt.id]||{pt,t,trips:[]}).trips.push(t.place); } }
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  return `<div class="pad">${banner()}<div class="top"><h1>You</h1></div><div class="card row"><button class="avbtn" data-act="editMe" aria-label="Change your name and avatar">${av(user.id,44)}<span class="pen" aria-hidden="true">${I(IC.pen,12,2.2)}</span></button><div class="col"><span class="b" style="font-size:17px">${esc(me().name)}</span><span class="cap muted">${esc(user.email||'')}</span></div></div>
+  return `<div class="pad">${banner()}<div class="top"><h1>You</h1></div><div class="card row"><button class="avbtn" data-act="editMe" aria-label="Change your name and bag">${av(user.id,72)}<span class="pen" aria-hidden="true">${I(IC.pen,12,2.2)}</span></button><div class="col"><span class="b" style="font-size:17px">${esc(me().name)}</span><span class="cap muted">${esc(user.email||'')}</span></div></div>
   <h2>Your saving</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="row" style="align-items:baseline"><span style="font-size:26px;font-weight:700;letter-spacing:-.03em">${money(s1)}</span><span class="muted">of ${money(s2)}</span><span class="sm b ${behind?'behind':'ok'}" style="margin-left:auto">${!mine.length?'':behind?'Something’s behind':'On track'}</span></div><span class="bar"><i style="width:${s2?s1/s2*100:0}%"></i></span><span class="cap muted">Payment-day checks show up in Activity${navigator.setAppBadge?' and on the app icon':''}.</span></div>
   ${mine.length?`<h2>Where your money sits</h2><div class="card" style="padding:4px 16px">${mine.map(({t,p},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${partIcon(p.name)}<div class="col"><span class="b">${esc(p.name)}</span><span class="cap muted">${esc(t.place)} · ${p.method==='none'?'Not set up yet':p.method==='paid'?'Paid in full':p.method==='adhoc'?'As and when':(p.method==='pot'?'A pot in my banking app':'Another account')+(p.into?' · '+esc(p.into):'')}</span></div></div>`).join('')}<p class="cap muted">Bagsy never moves your money. Your partner sees what you’ve saved for each part, never your balance.</p></div>`:''}
-  ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,32,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
+  ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,44,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
   <h2>Notifications</h2>${notifyCard(standalone,ios)}
   ${standalone?'':`<h2>Put Bagsy on your home screen</h2><div class="card sm" style="display:flex;flex-direction:column;gap:6px">${ios?`<span>1. Open this page in <b>Safari</b>.</span><span>2. Tap the Share button, then <b>Add to Home Screen</b>.</span><span>3. Open Bagsy from your home screen and sign in once more.</span>`:`<span>Open your browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.</span>`}</div>`}
   <button class="btn sec" data-act="signOut" style="margin-top:12px">Sign out</button>
@@ -566,16 +554,15 @@ function logSheet(){
   <button class="btn" data-act="doLog" ${busy?'disabled':''}>Log ${d.amt?money(d.amt):'it'}</button>`:''}
   <span class="cap muted row" style="justify-content:center;gap:6px">${I(IC.lock,14,2)} Logging only records it. Bagsy never moves your money.</span>`);
 }
+/* pick a bag and a strap colour */
 function avatarControls(d){
-  const O=AV_OPTS;
-  const chips=k=>`<div class="chips">${Object.entries(O[k]).map(([v,l])=>`<button class="chip" data-avk="${k}" data-avv="${v}" aria-pressed="${d[k]===v}">${l}</button>`).join('')}</div>`;
-  const sw=(k,label)=>`<div class="chips" role="group" aria-label="${label}">${Object.entries(O[k]).map(([v,c])=>`<button class="sw" style="background:${c}" data-avk="${k}" data-avv="${v}" aria-pressed="${d[k]===v}" aria-label="${label} ${v}"></button>`).join('')}</div>`;
-  const row=(t,c)=>`<div style="display:flex;flex-direction:column;gap:8px"><span class="b">${t}</span>${c}</div>`;
-  return row('Hair',chips('hairStyle'))+row('Hair colour',sw('hairColour','Hair colour'))+row('Skin',sw('skin','Skin tone'))+row('Face',chips('facial'))+row('Glasses',chips('glasses'))+row('Background',sw('bg','Background'));
+  return `<div style="display:grid;place-items:center;padding:4px 0">${bagImg(d.bag,d.col,128,'bagav big')}</div>
+  <div style="display:flex;flex-direction:column;gap:8px"><span class="b">Your bag</span><div class="bagpick" role="group" aria-label="Your bag">${BAGS.map(b=>`<button data-avk="bag" data-avv="${b}" aria-pressed="${d.bag===b}" aria-label="${BAG_NAMES[b]}">${bagImg(b,d.col,56)}</button>`).join('')}</div></div>
+  <div style="display:flex;flex-direction:column;gap:8px"><span class="b">Strap colour</span><div class="chips" role="group" aria-label="Strap colour">${COL_ORDER.map(c=>`<button class="sw" style="background:${BAG_SWATCH[c]}" data-avk="col" data-avv="${c}" aria-pressed="${d.col===c}" aria-label="${c}"></button>`).join('')}</div><span class="cap muted">Your trip partner sees your bag next to your name. If you both pick the same colour, theirs shifts on your phone so you can tell you apart.</span></div>`;
 }
 function avatarSheet(){
   const d=sheet.draft;
-  return wrap('avatar','avt',`${sheetHead('avt','You')}<label class="b" for="nm2">Your first name</label><input id="nm2" class="field" value="${esc(sheet.name)}"><div style="display:grid;place-items:center">${avatarSVG(d,120)}</div>${avatarControls(d)}<button class="btn" data-act="saveMe" ${busy?'disabled':''}>Save</button>`);
+  return wrap('avatar','avt',`${sheetHead('avt','You')}<label class="b" for="nm2">Your first name</label><input id="nm2" class="field" value="${esc(sheet.name)}">${avatarControls(d)}<button class="btn" data-act="saveMe" ${busy?'disabled':''}>Save</button>`);
 }
 async function loadInvite(s){ try{ s.preview = await api.invitePreview(s.code); }catch(e){ s.preview=null; s.err=friendly(e); } if(sheet===s) renderLayer(); }
 function joinSheet(){
@@ -685,8 +672,8 @@ document.addEventListener('click',async e=>{
     case 'pushOff': pushOff(); break;
     case 'pushTest': try{ const n=await api.testPush(); showToast(n?'Sent. It should pop up in a few seconds.':'No phones are signed up yet. Turn notifications on first.'); }catch(err){ fail(err); } break;
     case 'finishOnboard': { const nm=(document.getElementById('nm').value||'').trim(); if(!nm){ document.getElementById('nm').focus(); return; } try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); sheet=null; await reload(); }catch(err){ fail(err); } break; }
-    case 'editMe': sheet={type:'avatar',name:me().name,draft:{...DEFAULT_AV,...(me().avatar||{})}}; renderLayer(); break;
-    case 'saveMe': { const nm=(document.getElementById('nm2').value||'').trim()||me().name; busy=true; renderLayer(); try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); busy=false; sheet=null; await reload(); showToast('Saved. Your trip partners see the new look.'); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
+    case 'editMe': sheet={type:'avatar',name:me().name,draft:bagOf(user.id,me().avatar)}; renderLayer(); break;
+    case 'saveMe': { const nm=(document.getElementById('nm2').value||'').trim()||me().name; busy=true; renderLayer(); try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); busy=false; sheet=null; await reload(); showToast('Saved. Your trip partner sees your bag.'); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
     case 'plan': startPlan(); break;
     case 'home': UI.screen={name:'tabs'}; UI.tab='trips'; render(); break;
     case 'planback': if(plan.step>1){ plan.step--; render(); } else { plan=null; UI.screen={name:'tabs'}; render(); } view.scrollTop=0; break;
