@@ -1,8 +1,8 @@
 /* Bagsy service worker. Code is fetched fresh whenever you're online (so updates show up on the next open);
    the saved copy is only used when you're offline. Pictures and the splash video come from the saved copy. */
-const CACHE = 'bagsy-96646f27';
+const CACHE = 'bagsy-2f43512c';
 const SHELL = ['./','index.html','app.js','api.js','config.js','supabase.js','manifest.webmanifest','splash.mp4',
-  'img/plane.png','img/key.png','img/tickets.png','img/wallet.png','img/case.png','img/package.png','img/bagsy-black.svg',
+  'img/plane.png','img/key.png','img/tickets.png','img/wallet.png','img/case.png','img/package.png','img/bed.png','img/bagsy-black.svg',
   'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache:'reload' })))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
