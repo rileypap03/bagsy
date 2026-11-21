@@ -20,3 +20,25 @@ self.addEventListener('fetch', e => {
   }
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
+
+/* ---------- push notifications ---------- */
+self.addEventListener('push', e => {
+  let m = {}; try { m = e.data ? e.data.json() : {}; } catch (_) { m = { title:'Bagsy', body: e.data && e.data.text() }; }
+  e.waitUntil((async () => {
+    await self.registration.showNotification(m.title || 'Bagsy', { body: m.body || '', tag: m.tag, data: { url: m.url || './' }, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+    if (/^check-/.test(m.tag || '') && self.navigator.setAppBadge) {          // keep the app-icon count in step with payday checks
+      const n = (await self.registration.getNotifications()).filter(x => /^check-/.test(x.tag || '')).length;
+      self.navigator.setAppBadge(n).catch(() => {});
+    }
+  })());
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type:'window', includeUncontrolled:true });
+    const c = all.find(x => x.url.startsWith(self.registration.scope));
+    if (c) { await c.focus(); c.postMessage({ open: url }); return; }   // already open: jump there without replaying the splash
+    await self.clients.openWindow(url);
+  })());
+});

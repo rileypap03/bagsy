@@ -2,7 +2,7 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Bagsy</title>
 <meta name="theme-color" content="#E9BE4E">
 <meta name="description" content="Save for a trip together. Each of you bagsies your part.">
@@ -149,6 +149,13 @@ html,body{background:#E9BE4E}   /* splash yellow until the splash ends, then the
 html.app,html.app body{background:var(--surface-page)}
 @media(min-width:520px){html,body,html.app,html.app body{background:#2A2C30}}
 .splash .skip{top:calc(16px + env(safe-area-inset-top))}
+/* deposit marker on a part's progress bar */
+.depmark{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--brass-darkest);border-radius:1px}
+.bar:has(.depmark){overflow:visible}
+/* lock the page: only the app's own scrolling areas move, never the whole page (no rubber-banding, no sideways drift, no pinch) */
+html,body{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none;touch-action:pan-y}
+.scroll,.sheet{overflow-x:hidden;overscroll-behavior:none}
+.phone{touch-action:pan-y}
 
 </style>
 </head>

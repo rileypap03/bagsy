@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='d241502c';
+window.BAGSY_VERSION='620313c3';
 {
 /* ---------- location scenes ---------- */
 const SC = {sky:'#22408C',far:'#3456A8',far2:'#2C4C9E',mid:'#1F3578',near:'#16214A',cream:'#F4EAD3',shade:'#E0CFAD',brass:'#D9A441',yellow:'#FFC53D',terra:'#C8603F',peach:'#F2B48A',blue:'#A9BDEB',rose:'#E58F7B',green:'#2E6A58',green2:'#245446',glow:'#FFD27A',water:'#2A4A9C'};
@@ -160,7 +160,13 @@ let plan=null, sheet=null, toast=null, toastTimer=null, auth={ mode:'in', email:
 let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
-if(params.get('join')){ ls.set('bagsy-join', params.get('join').toUpperCase()); history.replaceState(null,'',location.pathname); }
+if(params.get('join')) ls.set('bagsy-join', params.get('join').toUpperCase());
+let navQ = params.get('trip')||params.get('tab') ? { trip:params.get('trip'), tab:params.get('tab') } : null;   // opened from a notification
+if(location.search && !/type=recovery/.test(location.search)) history.replaceState(null,'',location.pathname+location.hash);
+function applyNav(){ if(!navQ||!A) return; const q=navQ; navQ=null; sheet=null;
+  if(q.trip&&trip(q.trip)) UI.screen={name:'trip',id:q.trip}; else { UI.tab=q.tab==='activity'?'activity':'trips'; UI.screen={name:'tabs'}; }
+  render(); view.scrollTop=0; }
+let push = { on:false, known:false, busy:false };   // notifications on this phone
 
 function shape(raw, uid){
   const profiles = {}; for(const p of raw.profiles) profiles[p.id]=p;
@@ -169,7 +175,7 @@ function shape(raw, uid){
     const logs = raw.logs.filter(l=>l.trip_id===t.id);
     const parts = raw.parts.filter(p=>p.trip_id===t.id).map(p=>({
       id:p.id, name:p.name, cost:+p.cost, owner:p.owner, forPartner:p.for_partner, due:p.due, method:p.method, freq:p.freq, amt:+p.amount,
-      into:p.into_label||'', checks:p.checks, scheduleFrom:p.schedule_from, created:p.created_at,
+      into:p.into_label||'', checks:p.checks, scheduleFrom:p.schedule_from, created:p.created_at, deposit:+p.deposit||0, depositDue:p.deposit_due||null,
       saved: logs.filter(l=>l.part_id===p.id).reduce((s,l)=>s+(+l.amount),0) }));
     return { id:t.id, place:t.place, kind:t.kind, start:t.start_date, nights:t.nights, partnerName:t.partner_name||'', code:t.invite_code, createdBy:t.created_by, members, parts, logs };
   });
@@ -177,7 +183,7 @@ function shape(raw, uid){
 }
 async function reload(){
   if(!user) return;
-  try{ const raw = await api.load(user.id); A = shape(raw, user.id); ls.set('bagsy-cache', A); offline=false; loadErr=''; }
+  try{ const raw = await api.load(user.id); A = shape(raw, user.id); ls.set('bagsy-cache', A); offline=false; loadErr=''; if(navQ){ render(); applyNav(); return; } }
   catch(e){ offline = !navigator.onLine || /fetch|network/i.test(String(e&&e.message)); if(!offline) console.error(e); if(!A) loadErr = friendly(e); }
   render();
 }
@@ -189,8 +195,21 @@ function partnerOf(t){ const id=t.members.find(m=>m!==user.id); if(id) return { 
 const ownerKey = (t,p) => p.owner || (p.forPartner ? 'partner:'+t.id : null);
 const nameOf = (t,key) => key===user.id ? (me().name||'You') : key&&key.startsWith('partner:') ? (t.partnerName||'Your partner') : ((A.profiles[key]||{}).name||'Someone');
 const isMine = p => p.owner===user.id;
+/* a deposit still to cover: how much, and by when */
+const depLeft = p => p.deposit>0&&p.depositDue&&p.saved<p.deposit ? p.deposit-p.saved : 0;
+/* the weekly/monthly amount that covers the deposit by its date and the rest by the due date */
+function suggest(p,freq){ const rem=Math.max(0,p.cost-p.saved), n=Math.max(1,payDates(freq,p.due).length); let a=Math.ceil(rem/n);
+  const dl=depLeft(p); if(dl&&D(p.depositDue)>TODAY) a=Math.max(a,Math.ceil(dl/Math.max(1,payDates(freq,p.depositDue).length)));
+  return Math.max(1,a); }
 function status(p){
   if(p.saved>=p.cost) return {txt:'Packed',k:'ok'};
+  const dl=depLeft(p);
+  if(dl&&p.method!=='paid'){
+    if(D(p.depositDue)<TODAY) return {txt:'Deposit due',k:'behind',dep:'late',short:dl};
+    const pace=Math.ceil(dl/Math.max(1,weeksTo(p.depositDue)));
+    if(p.method==='pot'||p.method==='account'){ const pl=p.amt*payDates(p.freq,p.depositDue).length; if(pl<dl) return {txt:'Behind',k:'behind',dep:'short',pace}; }
+    if(p.method==='adhoc'&&weeksTo(p.depositDue)<2) return {txt:'Deposit soon',k:'behind',dep:'short',pace};
+  }
   const rem=p.cost-p.saved, wl=Math.max(1,weeksTo(p.due));
   if(p.method==='adhoc'){ const startD=D(p.created||TODAY), span=Math.max(1,(D(p.due)-startD)/(7*DAY)), el=(TODAY-startD)/(7*DAY); const ideal=p.cost*Math.min(1,el/span); const behind = el>=2 && p.saved < ideal - p.cost*0.05; return behind?{txt:'Behind',k:'behind',pace:Math.ceil(rem/wl)}:{txt:'As and when',k:'muted',pace:Math.ceil(rem/wl)}; }
   if(p.method==='paid') return {txt:'Paid',k:'ok'};
@@ -229,6 +248,7 @@ function render(){
   TODAY = (n=>new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate())))(new Date());
   let chrome='';
   if(booting){ view.innerHTML=`<div class="center"><span class="spin"></span></div>`; }
+  else if(api.recovering()){ view.innerHTML=newPassword(); }
   else if(!user){ view.innerHTML=signIn(); }
   else if(!A){ view.innerHTML=loadErr?`<div class="center" style="padding:24px;text-align:center"><p class="behind">${esc(loadErr)}</p><button class="btn sec" data-act="retry" style="max-width:240px">Try again</button><button class="link" data-act="signOut">Sign out</button></div>`:`<div class="center"><span class="spin"></span><p class="muted">Loading your trips…</p></div>`; }
   else if(!me().name){ view.innerHTML=onboarding(); }
@@ -256,6 +276,10 @@ const banner = () => (api.preview?`<div class="pv">Preview mode: everything is s
 /* sign in with email and password; new accounts are ready straight away (email confirmation is off in Supabase) */
 function signIn(){
   const e=auth, up=e.mode==='up';
+  if(e.mode==='forgot'||e.mode==='sent') return `<div class="auth">${banner()}<div class="authtop" style="padding-bottom:0"><img src="img/bagsy-black.svg" alt="Bagsy" style="height:44px"></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">${e.mode==='sent'?`<span class="b" style="font-size:18px">Check your email</span><p class="sm muted" style="margin:0">If there’s a Bagsy account for <b style="color:var(--ink)">${esc(e.email)}</b>, a link to choose a new password is on its way. It can take a few minutes, and might land in junk.</p><p class="sm muted" style="margin:0">The link opens in your browser. Set the new password there, then come back to Bagsy and sign in with it.</p>`
+    :`<span class="b" style="font-size:18px">Forgot your password?</span><p class="sm muted" style="margin:0">Put in the email you signed up with and we’ll send you a link to choose a new one.</p><label class="b" for="email">Email</label><input id="email" class="field" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${esc(e.email)}"><button class="btn" data-act="sendReset" ${e.sending?'disabled':''}>${e.sending?'Sending…':'Send reset link'}</button>${e.err?`<p class="cap behind" role="alert" style="margin:0">${e.err}</p>`:''}`}
+    <button class="link" data-authmode="in" style="align-self:center">Back to sign in</button></div></div>`;
   return `<div class="auth">${banner()}<div class="authtop"><img src="img/bagsy-black.svg" alt="Bagsy" style="height:56px"><p class="muted" style="margin:14px 0 0;font-size:16px">Save for a trip together.<br>Each of you bagsies your part.</p></div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div class="seg two" role="tablist"><button data-authmode="in" aria-pressed="${!up}">Sign in</button><button data-authmode="up" aria-pressed="${up}">Create account</button></div>
@@ -263,7 +287,17 @@ function signIn(){
     <label class="b" for="pw">Password</label><input id="pw" class="field" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'At least 8 characters':''}">
     <button class="btn" data-act="auth" ${e.sending?'disabled':''}>${e.sending?(up?'Creating…':'Signing in…'):(up?'Create account':'Sign in')}</button>
     ${e.err?`<p class="cap behind" role="alert" style="margin:0">${e.err}</p>`:''}
-    <p class="cap muted" style="margin:0">${up?'Use a password you’ll remember. Your password manager can save it.':'New here? Tap Create account.'}</p></div></div>`;
+    <p class="cap muted" style="margin:0">${up?'Use a password you’ll remember. Your password manager can save it.':'New here? Tap Create account.'}</p></div>
+    ${up?'':`<button class="link" data-act="forgot" style="align-self:center">Forgot your password?</button>`}</div>`;
+}
+/* arrived from the reset email: choose a new password */
+function newPassword(){
+  const e=auth;
+  return `<div class="auth">${banner()}<div class="authtop" style="padding-bottom:0"><img src="img/bagsy-black.svg" alt="Bagsy" style="height:44px"></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">${user?`<span class="b" style="font-size:18px">Choose a new password</span><p class="sm muted" style="margin:0">For ${esc(user.email||'your account')}.</p>
+    <label class="b" for="npw">New password</label><input id="npw" class="field" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+    <button class="btn" data-act="savePw" ${e.sending?'disabled':''}>${e.sending?'Saving…':'Save new password'}</button>${e.err?`<p class="cap behind" role="alert" style="margin:0">${e.err}</p>`:''}`
+    :`<span class="b" style="font-size:18px">That link has run out</span><p class="sm muted" style="margin:0">Reset links only work once and for a short time. Ask for a new one.</p><button class="btn" data-act="forgot">Send a new link</button>`}</div></div>`;
 }
 function onboarding(){
   const d = sheet&&sheet.type==='onboard' ? sheet.draft : (sheet={type:'onboard',draft:{...DEFAULT_AV},name:''}).draft;
@@ -304,9 +338,12 @@ function tripView(t){
     h+=`<div class="card" style="padding:16px 16px 0"><div class="row" style="gap:10px;padding-bottom:8px">${who?av(who,32,t):`<span class="av I" style="width:32px;height:32px">?</span>`}<span class="b" style="flex:1;font-size:16px;font-weight:700">${who===null?'Nobody yet':mineCard?esc(me().name)+' (you)':esc(nameOf(t,who))}</span><span class="sm muted"><b style="color:var(--ink)">${money(s1)}</b> of ${money(s2)}</span></div>`;
     if(!ps.length) h+=`<p class="sm muted" style="margin:0 0 12px">Nothing bagsied yet.</p>`;
     for(const p of ps){ const st=status(p);
-      h+=`<button data-part="${p.id}" style="display:flex;gap:12px;padding:12px 0;width:100%;border:0;background:none;text-align:left">${partIcon(p.name)}<span class="col" style="gap:8px"><span class="row" style="align-items:flex-start;gap:8px"><span class="col"><span style="font-size:16px;font-weight:500">${esc(p.name)}</span><span class="cap muted">Due ${fmt(D(p.due),false)} · ${p.method==='none'&&!mineCard?'Not set up yet':how(p)}</span></span><span class="col" style="flex:none;align-items:flex-end"><span class="b" style="font-size:16px">${money(p.saved)}</span><span class="cap ${st.txt==='Packed'?'ok':'muted'}" style="font-weight:500">${st.txt==='Packed'?'Packed':'of '+money(p.cost)}</span></span></span><span class="bar" style="height:4px"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span></span></button>`;
+      h+=`<button data-part="${p.id}" style="display:flex;gap:12px;padding:12px 0;width:100%;border:0;background:none;text-align:left">${partIcon(p.name)}<span class="col" style="gap:8px"><span class="row" style="align-items:flex-start;gap:8px"><span class="col"><span style="font-size:16px;font-weight:500">${esc(p.name)}</span><span class="cap muted">${p.deposit>0&&p.saved<p.cost?(depLeft(p)?`Deposit ${money(p.deposit)} by ${fmt(D(p.depositDue),false)} · rest by ${fmt(D(p.due),false)}`:`Deposit covered · rest by ${fmt(D(p.due),false)}`):`Due ${fmt(D(p.due),false)}`} · ${p.method==='none'&&!mineCard?'Not set up yet':how(p)}</span></span><span class="col" style="flex:none;align-items:flex-end"><span class="b" style="font-size:16px">${money(p.saved)}</span><span class="cap ${st.txt==='Packed'?'ok':'muted'}" style="font-weight:500">${st.txt==='Packed'?'Packed':'of '+money(p.cost)}</span></span></span><span class="bar" style="height:4px;position:relative"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i>${p.deposit>0&&p.deposit<p.cost?`<b class="depmark" style="left:${p.deposit/p.cost*100}%"></b>`:''}</span></span></button>`;
       if(st.k==='behind'){ const pace=st.pace||Math.ceil(st.short/Math.max(1,weeksTo(p.due)));
-        h+=`<div class="notice" style="margin:4px 0 8px">${I(IC.warn,18,2)}<div class="col" style="gap:6px"><span>${esc(p.name)} is behind. ${money(pace)} a week from now gets it there by ${fmt(D(p.due),false)}.</span><span class="row" style="gap:16px">${mineCard?`<button class="link" style="padding:0;color:var(--ink)" data-part="${p.id}">Change how I save</button>`:`<button class="link" style="padding:0;color:var(--ink)" data-log="${t.id}" data-for="${p.id}">Help ${esc(nameOf(t,who))} out</button>`}</span></div></div>`; } }
+        const msg = st.dep==='late' ? `The ${money(p.deposit)} deposit for ${esc(p.name)} was due ${fmt(D(p.depositDue),false)}. Already paid it? Log it so it counts.`
+          : st.dep ? `The ${esc(p.name)} deposit is behind. ${money(pace)} a week from now covers the ${money(p.deposit)} deposit by ${fmt(D(p.depositDue),false)}.`
+          : `${esc(p.name)} is behind. ${money(pace)} a week from now gets it there by ${fmt(D(p.due),false)}.`;
+        h+=`<div class="notice" style="margin:4px 0 8px">${I(IC.warn,18,2)}<div class="col" style="gap:6px"><span>${msg}</span><span class="row" style="gap:16px">${mineCard?(st.dep==='late'?`<button class="link" style="padding:0;color:var(--ink)" data-log="${t.id}" data-for="${p.id}" data-amt0="${st.short}">Log the deposit</button>`:`<button class="link" style="padding:0;color:var(--ink)" data-part="${p.id}">Change how I save</button>`):`<button class="link" style="padding:0;color:var(--ink)" data-log="${t.id}" data-for="${p.id}">Help ${esc(nameOf(t,who))} out</button>`}</span></div></div>`; } }
     if(who!==null) h+=`<div class="divider"></div><button data-log="${t.id}" data-who="${who}" style="display:flex;align-items:center;justify-content:center;gap:8px;height:52px;width:100%;border:0;background:none;font-weight:600"><span style="width:24px;height:24px;border-radius:12px;background:${mineCard?'var(--yellow)':'var(--line-subtle)'};display:grid;place-items:center">${I(IC.plus,14,2.6)}</span>Log a saving${mineCard?'':' for '+esc(nameOf(t,who))}</button>`;
     h+=`</div>`;
   }
@@ -350,11 +387,47 @@ function you(){
   <h2>Your saving</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="row" style="align-items:baseline"><span style="font-size:26px;font-weight:700;letter-spacing:-.03em">${money(s1)}</span><span class="muted">of ${money(s2)}</span><span class="sm b ${behind?'behind':'ok'}" style="margin-left:auto">${!mine.length?'':behind?'Something’s behind':'On track'}</span></div><span class="bar"><i style="width:${s2?s1/s2*100:0}%"></i></span><span class="cap muted">Payment-day checks show up in Activity${navigator.setAppBadge?' and on the app icon':''}.</span></div>
   ${mine.length?`<h2>Where your money sits</h2><div class="card" style="padding:4px 16px">${mine.map(({t,p},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${partIcon(p.name)}<div class="col"><span class="b">${esc(p.name)}</span><span class="cap muted">${esc(t.place)} · ${p.method==='none'?'Not set up yet':p.method==='paid'?'Paid in full':p.method==='adhoc'?'As and when':(p.method==='pot'?'A pot in my banking app':'Another account')+(p.into?' · '+esc(p.into):'')}</span></div></div>`).join('')}<p class="cap muted">Bagsy never moves your money. Your partner sees what you’ve saved for each part, never your balance.</p></div>`:''}
   ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,32,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
+  <h2>Notifications</h2>${notifyCard(standalone,ios)}
   ${standalone?'':`<h2>Put Bagsy on your home screen</h2><div class="card sm" style="display:flex;flex-direction:column;gap:6px">${ios?`<span>1. Open this page in <b>Safari</b>.</span><span>2. Tap the Share button, then <b>Add to Home Screen</b>.</span><span>3. Open Bagsy from your home screen and sign in once more.</span>`:`<span>Open your browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.</span>`}</div>`}
   <button class="btn sec" data-act="signOut" style="margin-top:12px">Sign out</button>
   ${api.preview?`<h2>Preview tools</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><span class="cap muted">Pretend to be someone else to test the partner side. Sign out, then create another account with a different email.</span>${api._users().filter(u=>u.id!==user.id).map(u=>`<button class="btn s sec" data-switch="${u.id}">Switch to ${esc(u.name||u.email)}</button>`).join('')}<button class="btn s sec" data-act="wipe">Wipe preview data</button></div>`:''}
   <p class="demo">Bagsy ${window.BAGSY_VERSION||''}</p></div>`;
 }
+/* ---------- notifications ---------- */
+const canPush = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+function notifyCard(standalone,ios){
+  const wrap = x => `<div class="card" style="display:flex;flex-direction:column;gap:12px">${x}</div>`;
+  if(api.preview) return wrap(`<span class="sm muted">Notifications work in the real app, not in preview.</span>`);
+  if(!canPush()) return wrap(`<span class="sm muted">${ios&&!standalone?'Put Bagsy on your home screen first (see below), then open it from there to turn on notifications.':'This browser can’t show notifications. Try Bagsy on your phone.'}</span>`);
+  if(!api.pushKey) return wrap(`<span class="sm muted">Notifications aren’t switched on for Bagsy yet.</span>`);
+  if(Notification.permission==='denied') return wrap(`<span class="sm muted">Notifications are blocked for Bagsy. Turn them on in your phone’s Settings → Notifications → Bagsy, then come back here.</span>`);
+  if(!push.on) return wrap(`<span class="sm">Get a nudge on payment day, when ${partnerWord()} logs a saving, and if something’s running behind.</span><button class="btn" data-act="pushOn" ${push.busy?'disabled':''}>${push.busy?'Turning on…':'Turn on notifications'}</button>`);
+  const n = Object.assign({checks:true,partner:true,behind:true}, me().notify||{});
+  const sw=(k,t,sub)=>`<label class="row" style="min-height:44px"><span class="col"><span class="b">${t}</span><span class="cap muted">${sub}</span></span><input type="checkbox" class="switch" data-notify="${k}" ${n[k]!==false?'checked':''}></label>`;
+  return wrap(sw('checks','Payment days','“Did £25 go in?” on the day your saving is due')+sw('partner',`When ${partnerWord()} saves`,'They log a saving, pay a part in full or join a trip')+sw('behind','Running behind','A Sunday nudge if a part won’t make it, and deposits due')
+    +`<div class="row" style="gap:16px"><button class="link" data-act="pushTest" style="padding:4px 0">Send a test</button><button class="link" data-act="pushOff" style="padding:4px 0;margin-left:auto;color:var(--ink-muted)">Turn off on this phone</button></div>`);
+}
+function partnerWord(){ const names=[...new Set(A.trips.map(partnerOf).filter(Boolean).map(p=>p.name))]; return names.length===1?esc(names[0]):'your partner'; }
+const keyBytes = b => { const s=atob((b+'='.repeat((4-b.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(s,c=>c.charCodeAt(0)); };
+async function pushCheck(){ if(!canPush()||api.preview||!user) return; try{ const r=await navigator.serviceWorker.ready, s=await r.pushManager.getSubscription(); push.on=!!s&&Notification.permission==='granted'; push.known=true; if(push.on) api.savePush(s).catch(()=>{}); render(); }catch(e){} }
+async function pushOn(){
+  push.busy=true; render();
+  try{
+    const perm = await Notification.requestPermission();
+    if(perm!=='granted'){ push.busy=false; render(); showToast(perm==='denied'?'Notifications are blocked. You can allow them in your phone’s Settings.':'No problem. You can turn them on here any time.'); return; }
+    const r = await navigator.serviceWorker.ready;
+    let s = await r.pushManager.getSubscription();
+    if(!s) s = await r.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:keyBytes(api.pushKey) });
+    await api.savePush(s); push.on=true; push.busy=false; render(); showToast('Notifications are on for this phone.');
+  }catch(e){ push.busy=false; render(); fail(e); }
+}
+async function pushOff(quiet){
+  if(!canPush()||api.preview) return;
+  try{ const r=await navigator.serviceWorker.ready, s=await r.pushManager.getSubscription(); if(s){ await api.dropPush(s.endpoint).catch(()=>{}); await s.unsubscribe(); } }catch(e){}
+  push.on=false; if(!quiet){ render(); showToast('Notifications are off on this phone.'); }
+}
+async function setNotify(k,v){ const n=Object.assign({checks:true,partner:true,behind:true}, me().notify||{}, {[k]:v}); try{ await api.saveProfile(user.id,{ notify:n }); A.profiles[user.id].notify=n; ls.set('bagsy-cache',A); }catch(e){ fail(e); render(); } }
+
 /* ---------- plan a trip ---------- */
 function planView(){
   const P=plan, step=P.step;
@@ -385,7 +458,9 @@ function planView(){
   } else {
     const chosen=P.parts.filter(p=>p.on);
     body=`<div style="padding:4px 8px 0"><h1>Who’s bagsying what?</h1><p class="muted" style="margin:6px 0 0">Give each part an owner, or split it between you, and a date it’s needed by. Money stays in each person’s own bank.</p></div>
-    ${chosen.map(p=>{ const i=P.parts.indexOf(p); return `<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${partIcon(p.name)}<span class="col"><span class="b" style="font-size:16px">${esc(p.name)}</span><span class="cap muted">${money(+p.cost||0)}</span></span></div>${P.withPartner?`<div class="seg two" role="group" aria-label="Who bagsies ${esc(p.name)}">${['me','partner','split'].map(w=>`<button data-owner="${i}" data-w="${w}" aria-pressed="${p.owner===w}">${w==='me'?'Me':w==='split'?'Split it':esc(pn)}</button>`).join('')}</div>${p.owner==='split'?`<span class="cap muted">You each save ${money(Math.round((+p.cost||0)/2))} towards it, in your own bank.</span>`:''}`:''}<label class="cap muted" for="due${i}">Needed by</label><input id="due${i}" type="date" class="field" data-due="${i}" value="${p.due}" min="${iso(TODAY)}"></div>`; }).join('')}`;
+    ${chosen.map(p=>{ const i=P.parts.indexOf(p); return `<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${partIcon(p.name)}<span class="col"><span class="b" style="font-size:16px">${esc(p.name)}</span><span class="cap muted">${money(+p.cost||0)}</span></span></div>${P.withPartner?`<div class="seg two" role="group" aria-label="Who bagsies ${esc(p.name)}">${['me','partner','split'].map(w=>`<button data-owner="${i}" data-w="${w}" aria-pressed="${p.owner===w}">${w==='me'?'Me':w==='split'?'Split it':esc(pn)}</button>`).join('')}</div>${p.owner==='split'?`<span class="cap muted">You each save ${money(Math.round((+p.cost||0)/2))} towards it, in your own bank.</span>`:''}`:''}<label class="cap muted" for="due${i}">${p.depOn?'Rest needed by':'Needed by'}</label><input id="due${i}" type="date" class="field" data-due="${i}" value="${p.due}" min="${iso(TODAY)}">
+    ${p.name==='Package holiday'||p.depOn?`<label class="row" style="min-height:44px;border-top:1px solid var(--line-subtle);padding-top:12px"><span class="col"><span class="b">Paying a deposit first?</span><span class="cap muted">Most package holidays take a deposit when you book</span></span><input type="checkbox" class="switch" data-depon="${i}" ${p.depOn?'checked':''}></label>
+    ${p.depOn?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="col"><label class="cap muted" for="dep${i}">Deposit${p.owner==='split'&&P.withPartner?' (total)':''}</label><div class="money" style="height:48px;background:#fff;border:1.5px solid var(--line-control)"><span class="b muted">£</span><input id="dep${i}" inputmode="numeric" data-dep="${i}" value="${esc(p.dep||'')}" placeholder="0"></div></div><div class="col"><label class="cap muted" for="depd${i}">Deposit by</label><input id="depd${i}" type="date" class="field" data-depdue="${i}" value="${p.depDue}" min="${iso(TODAY)}"></div></div>`:''}`:''}</div>`; }).join('')}`;
     const mine=chosen.reduce((s,p)=>s+(!P.withPartner||p.owner==='me'?(+p.cost||0):p.owner==='split'?Math.round((+p.cost||0)/2):0),0);
     bottom=`<div class="row" style="justify-content:space-between"><span class="muted">You’re bagsying</span><span class="b" style="font-size:20px">${money(mine)}</span></div><button class="btn" data-act="create" ${busy?'disabled':''}>${busy?'Creating…':'Create trip'}</button>`;
   }
@@ -394,7 +469,7 @@ function planView(){
 function startPlan(){
   const start=iso(addDays(TODAY,180));
   plan={step:1,place:'',kind:null,start,nights:7,withPartner:true,partnerName:'',adding:false,
-    parts:BASE_PARTS.map(([name,cost])=>({name,cost,on:PART_DEF[name][2],owner:PART_DEF[name][1],due:partDue(name,start)}))};
+    parts:BASE_PARTS.map(([name,cost])=>({name,cost,on:PART_DEF[name][2],owner:PART_DEF[name][1],due:partDue(name,start),depOn:false,dep:'',depDue:iso(addDays(TODAY,14))}))};
   UI.screen={name:'plan'}; render(); view.scrollTop=0;
 }
 function fixDues(){ plan.parts.forEach(p=>{ p.due=partDue(p.name,plan.start); }); }
@@ -405,9 +480,10 @@ async function createTrip(){
   try{
     const t = await api.createTrip({ place:P.place.trim(), kind, start_date:P.start, nights:P.nights, partner_name:P.withPartner?P.partnerName.trim():'' },
       chosen.flatMap(p=>{ const cost=Math.max(0,Math.round(+p.cost||0)), n=Math.max(1,payDates('week',p.due).length);
-        const row=(c,mine)=>({ name:p.name, cost:c, owner:mine?user.id:null, for_partner:!mine, due:p.due, method:'none', freq:'week', amount:Math.ceil(c/n), into_label:mine?P.place.trim()+' pot':'', checks:true, schedule_from:iso(TODAY) });
-        if(P.withPartner&&p.owner==='split'){ const a=Math.ceil(cost/2); return [row(a,true),row(cost-a,false)]; }
-        return [row(cost,!P.withPartner||p.owner==='me')]; }));
+        const dep=p.depOn?Math.min(cost-1,Math.max(0,Math.round(+p.dep||0))):0;
+        const row=(c,mine,dp)=>({ name:p.name, cost:c, owner:mine?user.id:null, for_partner:!mine, due:p.due, method:'none', freq:'week', amount:Math.ceil(c/n), into_label:mine?P.place.trim()+' pot':'', checks:true, schedule_from:iso(TODAY), deposit:dp>0?dp:0, deposit_due:dp>0?p.depDue:null });
+        if(P.withPartner&&p.owner==='split'){ const a=Math.ceil(cost/2), da=Math.ceil(dep/2); return [row(a,true,da),row(cost-a,false,dep-da)]; }
+        return [row(cost,!P.withPartner||p.owner==='me',dep)]; }));
     await api.addActivity(t.id,'planned',{ total:chosen.reduce((s,p)=>s+Math.max(0,Math.round(+p.cost||0)),0), parts:chosen.length });
     plan=null; UI.screen={name:'trip',id:t.id}; busy=false; await reload(); view.scrollTop=0;
     showToast(P.withPartner?`${esc(t.place)} is planned. Now invite ${esc(P.partnerName.trim())}.`:`${esc(t.place)} is planned. Tap a part to set how you’re saving.`);
@@ -444,19 +520,26 @@ const wrap = (type,id,inner) => `<div class="scrim" data-act="closeSheet"><div c
 function savingSheet(){
   const t=trip(sheet.trip), p=t&&t.parts.find(x=>x.id===sheet.part); if(!p){ sheet=null; return ''; }
   const d=sheet.draft, ownerName=nameOf(t,ownerKey(t,p)), theirs=!isMine(p);
-  const rem=Math.max(0,p.cost-p.saved), dates=payDates(d.freq,p.due), n=dates.length, sugg=Math.max(1,Math.ceil(rem/Math.max(1,n)));
+  const rem=Math.max(0,p.cost-p.saved), dates=payDates(d.freq,p.due), n=dates.length, sugg=suggest(p,d.freq), dl=depLeft(p);
   const amt=d.amt||sugg, k=Math.ceil(rem/amt), planned=Math.min(amt*n,rem);
   let outcome,col;
   if(!rem){ outcome='Already packed. Nothing left to save.'; col='var(--ok)'; }
   else if(!n){ outcome='The due date has passed or is this week. Log what you have, or move the date.'; col='var(--behind)'; }
   else if(k<=n){ const hit=dates[k-1], early=Math.round((D(p.due)-hit)/DAY); outcome=`Covered by ${fmt(hit)}, ${early} day${early===1?'':'s'} before it’s due`; col='var(--ok)'; }
   else { outcome=`Behind: ${money(rem-amt*n)} short on ${fmt(D(p.due),false)}`; col='var(--behind)'; }
+  let depLine='';
+  if(dl){ const dd=D(p.depositDue), nd=payDates(d.freq,p.depositDue).length, kd=Math.ceil(dl/amt);
+    if(dd<TODAY) depLine=`The ${money(p.deposit)} deposit was due ${fmt(dd,false)}.`;
+    else if(kd<=nd){ depLine=`Deposit of ${money(p.deposit)} covered by ${fmt(payDates(d.freq,p.depositDue)[kd-1])}, in time for ${fmt(dd,false)}.`; }
+    else { depLine=`Deposit: ${money(dl-amt*nd)} short on ${fmt(dd,false)}.`; col='var(--behind)'; if(k<=n) outcome='The rest is covered in time'; } }
   const methods=[['pot','A pot in my banking app','A scheduled move into a pot or space, like Monzo, Starling or Revolut.','Most people'],['account','Another account','A standing order from your main bank to a savings account or a second bank.',''],['adhoc','As and when','You put money in when you can. No schedule.',''],['paid','Paid in full','You’ve already paid for this part.','']];
   const pt=partnerOf(t), owners=[[user.id,'Me']].concat(pt?[[pt.id,pt.name]]:[]);
   const details = `<details ${sheet.open?'open':''} id="pdet"><summary class="b">Part details</summary><div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
     <label class="cap muted" for="pName">Name</label><input id="pName" class="field" data-bind="name" value="${esc(d.name)}">
     <label class="cap muted" for="pCost">Cost</label><div class="money" style="height:48px;background:#fff;border:1.5px solid var(--line-control)"><span class="b muted">£</span><input id="pCost" inputmode="decimal" data-bind="cost" value="${d.cost}"></div>
     <label class="cap muted" for="pDue">Needed by</label><input id="pDue" type="date" class="field" data-bind="due" value="${d.due}">
+    <label class="row" style="min-height:44px"><span class="col"><span class="b">Deposit first</span><span class="cap muted">Pay part of it earlier, the rest by the date above</span></span><input type="checkbox" class="switch" id="pDepOn" ${d.depOn?'checked':''}></label>
+    ${d.depOn?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="col"><label class="cap muted" for="pDep">Deposit</label><div class="money" style="height:48px;background:#fff;border:1.5px solid var(--line-control)"><span class="b muted">£</span><input id="pDep" inputmode="decimal" data-bind="dep" value="${esc(d.dep)}"></div></div><div class="col"><label class="cap muted" for="pDepDue">Deposit by</label><input id="pDepDue" type="date" class="field" data-bind="depDue" value="${d.depDue}"></div></div>`:''}
     ${owners.length>1?`<span class="cap muted">Who’s bagsying it</span><div class="seg two">${owners.map(([id,l])=>`<button data-powner="${id}" aria-pressed="${d.owner===id}">${esc(l)}</button>`).join('')}</div>`:''}
     <button class="btn s" data-act="saveDetails">Save details</button><button class="link behind" data-act="deletePart" style="align-self:flex-start">${sheet.confirmDel?'Tap again to delete this part and its logged savings':'Delete this part'}</button></div></details>`;
   return wrap('saving','st',`<span class="grab" aria-hidden="true"></span><div class="row">${partIcon(p.name)}<div class="col"><span id="st" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${theirs?esc(ownerName)+'’s saving':'How I’m saving'}</span><span class="cap muted">${esc(p.name)} · ${money(p.saved)} of ${money(p.cost)} · due ${fmt(D(p.due))}</span></div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>
@@ -464,8 +547,9 @@ function savingSheet(){
   <div role="radiogroup" aria-labelledby="mq" style="display:flex;flex-direction:column;gap:8px"><span id="mq" class="b">Where does the money go?</span>${methods.map(([id,nm,h,tag])=>`<button class="radio" role="radio" aria-checked="${d.method===id}" data-method="${id}"><span class="dot"></span><span class="col"><span class="b" style="font-size:16px">${nm}${tag?`<span class="tag">${tag}</span>`:''}</span><span class="cap muted">${h}</span></span></button>`).join('')}</div>
   ${d.method==='pot'||d.method==='account'?`<div style="display:flex;flex-direction:column;gap:12px"><span class="b">How often</span><div class="seg" role="group" aria-label="How often">${[['week','Weekly'],['fortnight','Fortnightly'],['month','Monthly']].map(([f,l])=>`<button data-freq="${f}" aria-pressed="${d.freq===f}">${l}</button>`).join('')}</div>
   <div class="stepper"><button data-amt="-1" aria-label="Save £1 less">−</button><div class="col" style="text-align:center;align-items:center" aria-live="polite"><span style="font-size:32px;line-height:36px;font-weight:700;letter-spacing:-.03em">${money(amt)}</span><span class="cap muted">${PER[d.freq]}, ${d.freq==='month'?'on the 27th':d.freq==='week'?'every Friday':'every other Friday'}</span></div><button data-amt="1" aria-label="Save £1 more">+</button></div>
-  <div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:var(--track)"><span style="flex:${Math.max(p.saved,0.01)};background:var(--brass)"></span><span style="flex:${planned||0.01};background:var(--brass-light)"></span><span style="flex:${Math.max(rem-planned,0)}"></span></div><span class="sm b" style="color:${col}">${outcome}</span>${n?`<span class="cap muted">${n} payment${n===1?'':'s'} ${d.freq==='week'?'every Friday':d.freq==='fortnight'?'every other Friday':'monthly'}, first on ${fmt(dates[0])}.</span>`:''}${amt!==sugg&&n?`<button class="link" style="align-self:flex-start;padding:4px 0" data-act="sugg">Use the suggested ${money(sugg)} ${PER[d.freq]}</button>`:''}</div></div>`:''}
-  ${d.method==='adhoc'&&rem?`<div class="notice">${I(IC.bulb,20,2)}<span>No schedule, that’s fine. To be ready by ${fmt(D(p.due),false)} you’d need about <b>${money(Math.ceil(rem/Math.max(1,weeksTo(p.due))))} a week</b>.</span></div>`:''}
+  <div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:var(--track)"><span style="flex:${Math.max(p.saved,0.01)};background:var(--brass)"></span><span style="flex:${planned||0.01};background:var(--brass-light)"></span><span style="flex:${Math.max(rem-planned,0)}"></span></div>${depLine?`<span class="sm b" style="color:${col}">${depLine}</span>`:''}<span class="sm b" style="color:${col}">${outcome}</span>${n?`<span class="cap muted">${n} payment${n===1?'':'s'} ${d.freq==='week'?'every Friday':d.freq==='fortnight'?'every other Friday':'monthly'}, first on ${fmt(dates[0])}.</span>`:''}${amt!==sugg&&n?`<button class="link" style="align-self:flex-start;padding:4px 0" data-act="sugg">Use the suggested ${money(sugg)} ${PER[d.freq]}</button>`:''}</div></div>`:''}
+  ${d.method==='adhoc'&&rem?`<div class="notice">${I(IC.bulb,20,2)}<span>No schedule, that’s fine. To be ready by ${fmt(D(p.due),false)} you’d need about <b>${money(Math.ceil(rem/Math.max(1,weeksTo(p.due))))} a week</b>${dl&&D(p.depositDue)>=TODAY?`, and ${money(dl)} by ${fmt(D(p.depositDue),false)} for the deposit`:''}.</span></div>`:''}
+  ${dl&&d.method!=='paid'?`<div class="notice">${I(IC.tick,18,2.4)}<div class="col" style="gap:6px"><span>Already paid the ${money(p.deposit)} deposit?</span><button class="link" style="padding:0;color:var(--ink);align-self:flex-start" data-log="${t.id}" data-for="${p.id}" data-amt0="${dl}">Log ${money(dl)} for the deposit</button></div></div>`:''}
   ${d.method==='paid'&&rem?`<div class="notice">${I(IC.tick,18,2.4)}<span>Saving this logs the last ${money(rem)} so the part shows as packed.</span></div>`:''}
   ${d.method!=='paid'?`<div style="display:flex;flex-direction:column;gap:8px"><label class="b" for="into">Saving into</label><input id="into" class="field" value="${esc(d.into)}" placeholder="Pot or account name"><span class="cap muted">Your own account. ${pt?esc(pt.name)+' sees':'Others see'} the name, never the balance.</span></div>
   ${d.method!=='adhoc'?`<label class="row" style="min-height:44px"><span class="col"><span class="b" style="font-size:16px">Check it went in</span><span class="cap muted">On payment day: “Did ${money(amt)} go in?” One tap to confirm.</span></span><input type="checkbox" class="switch" id="chk" ${d.checks?'checked':''}></label>`:''}`:''}
@@ -546,8 +630,8 @@ document.addEventListener('click',async e=>{
   const ds=el.dataset;
   if(ds.tab){ UI.tab=ds.tab; UI.screen={name:'tabs'}; render(); view.scrollTop=0; return; }
   if(ds.open){ UI.screen={name:'trip',id:ds.open}; render(); view.scrollTop=0; return; }
-  if(ds.part){ const t=trip(UI.screen.id), p=t.parts.find(x=>x.id===ds.part); sheet={type:'saving',trip:t.id,part:p.id,draft:{method:p.method==='none'?'pot':p.method,freq:p.freq,amt:p.amt,into:p.into,checks:p.checks,name:p.name,cost:p.cost,due:p.due,owner:ownerKey(t,p)}}; renderLayer(); return; }
-  if(ds.log){ const t=trip(ds.log); const pick=ds.for||(t.parts.find(x=>ownerKey(t,x)===(ds.who||user.id)&&x.saved<x.cost)||{}).id; sheet={type:'log',trip:t.id,draft:{part:pick,amt:''}}; renderLayer(); return; }
+  if(ds.part){ const t=trip(UI.screen.id), p=t.parts.find(x=>x.id===ds.part); sheet={type:'saving',trip:t.id,part:p.id,draft:{method:p.method==='none'?'pot':p.method,freq:p.freq,amt:p.amt,into:p.into,checks:p.checks,name:p.name,cost:p.cost,due:p.due,owner:ownerKey(t,p),depOn:p.deposit>0,dep:p.deposit||'',depDue:p.depositDue||iso(addDays(TODAY,14))}}; renderLayer(); return; }
+  if(ds.log){ const t=trip(ds.log); const pick=ds.for||(t.parts.find(x=>ownerKey(t,x)===(ds.who||user.id)&&x.saved<x.cost)||{}).id; sheet={type:'log',trip:t.id,draft:{part:pick,amt:ds.amt0?Math.round(+ds.amt0*100)/100:''}}; renderLayer(); return; }
   if(ds.lpart){ sheet.draft.part=ds.lpart; renderLayer(); return; }
   if(ds.lq){ sheet.draft.amt=+ds.lq; renderLayer(); return; }
   if(ds.method){ sheet.draft.method=ds.method; renderLayer(); return; }
@@ -556,7 +640,7 @@ document.addEventListener('click',async e=>{
   if(ds.apowner){ sheet.draft.owner=ds.apowner; renderLayer(); return; }
   if(ds.skind){ sheet.draft.kind=ds.skind; renderLayer(); return; }
   if(ds.snights){ sheet.draft.nights=Math.min(60,Math.max(1,sheet.draft.nights+(+ds.snights))); renderLayer(); return; }
-  if(ds.amt){ const s=sheet, t=trip(s.trip), p=t.parts.find(x=>x.id===s.part); const n=Math.max(1,payDates(s.draft.freq,p.due).length); const cur=s.draft.amt||Math.max(1,Math.ceil((p.cost-p.saved)/n)); s.draft.amt=Math.max(1,cur+(+ds.amt)); renderLayer(); return; }
+  if(ds.amt){ const s=sheet, t=trip(s.trip), p=t.parts.find(x=>x.id===s.part); const cur=s.draft.amt||suggest(p,s.draft.freq); s.draft.amt=Math.max(1,cur+(+ds.amt)); renderLayer(); return; }
   if(ds.yes){ const c=dueChecks().find(x=>x.part===ds.yes&&x.due===ds.due); if(c) logSaving(c.trip,c.part,c.amt,c.due); return; }
   if(ds.notyet){ const c=dueChecks().find(x=>x.part===ds.notyet&&x.due===ds.due); if(!c) return; try{ await api.reply(c.trip,c.part,c.due,'notyet'); await reload(); showToast('No problem. We’ll ask again on Monday.', async()=>{ await api.deleteReply(c.part,c.due); await reload(); }); }catch(err){ fail(err); } return; }
   if(ds.place){ plan.place=ds.place; plan.kind=null; render(); return; }
@@ -575,7 +659,7 @@ document.addEventListener('click',async e=>{
       if(!/^\S+@\S+\.\S+$/.test(em)){ auth.err='Enter your email address.'; render(); return; }
       if(pw.length<(up?8:1)){ auth.err=up?'Make your password at least 8 characters.':'Enter your password.'; render(); return; }
       auth.sending=true; auth.err=''; render();
-      try{ user = up ? await api.signUp(em,pw) : await api.signIn(em,pw); auth={mode:'in',email:'',err:'',sending:false}; A=null; render(); await reload(); }
+      try{ user = up ? await api.signUp(em,pw) : await api.signIn(em,pw); auth={mode:'in',email:'',err:'',sending:false}; A=null; render(); await reload(); pushCheck(); }
       catch(err){ const m=String(err&&err.message||err); auth.sending=false;
         auth.err = /CONFIRM_ON|not confirmed/i.test(m) ? 'Your account was made, but Supabase still has “Confirm email” switched on. Turn it off (Authentication → Sign In / Providers → Email), then sign in.'
           : /already registered|already exists/i.test(m) ? 'There’s already an account with that email. Tap Sign in.'
@@ -583,6 +667,21 @@ document.addEventListener('click',async e=>{
           : /weak|pwned|leaked/i.test(m) ? 'That password is too easy to guess. Try a longer one.'
           : esc(friendly(err));
         render(); } break; }
+    case 'forgot': auth={mode:'forgot',email:auth.email||(document.getElementById('email')||{}).value||'',err:'',sending:false}; if(api.recovering()) location.replace(location.pathname); else render(); break;
+    case 'sendReset': { const em=(document.getElementById('email').value||'').trim(); auth.email=em;
+      if(!/^\S+@\S+\.\S+$/.test(em)){ auth.err='Enter your email address.'; render(); return; }
+      auth.sending=true; auth.err=''; render();
+      try{ await api.resetPassword(em); auth.sending=false; auth.mode='sent'; render(); }
+      catch(err){ auth.sending=false; const m=String(err&&err.message||err); auth.err=/rate|seconds|too many/i.test(m)?'Too many tries. Wait a few minutes, then try again.':esc(friendly(err)); render(); } break; }
+    case 'savePw': { const pw=document.getElementById('npw').value||''; if(pw.length<8){ auth.err='Make your password at least 8 characters.'; render(); return; }
+      auth.sending=true; auth.err=''; render();
+      try{ await api.newPassword(pw); auth={mode:'in',email:'',err:'',sending:false}; A=null; render(); await reload();
+        const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+        showToast(standalone?'New password saved.':'New password saved. If Bagsy is on your home screen, open it there and sign in with it.'); }
+      catch(err){ auth.sending=false; const m=String(err&&err.message||err); auth.err=/weak|pwned|leaked/i.test(m)?'That password is too easy to guess. Try a longer one.':/different from the old/i.test(m)?'Pick a password you haven’t used for Bagsy before.':esc(friendly(err)); render(); } break; }
+    case 'pushOn': pushOn(); break;
+    case 'pushOff': pushOff(); break;
+    case 'pushTest': try{ const n=await api.testPush(); showToast(n?'Sent. It should pop up in a few seconds.':'No phones are signed up yet. Turn notifications on first.'); }catch(err){ fail(err); } break;
     case 'finishOnboard': { const nm=(document.getElementById('nm').value||'').trim(); if(!nm){ document.getElementById('nm').focus(); return; } try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); sheet=null; await reload(); }catch(err){ fail(err); } break; }
     case 'editMe': sheet={type:'avatar',name:me().name,draft:{...DEFAULT_AV,...(me().avatar||{})}}; renderLayer(); break;
     case 'saveMe': { const nm=(document.getElementById('nm2').value||'').trim()||me().name; busy=true; renderLayer(); try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); busy=false; sheet=null; await reload(); showToast('Saved. Your trip partners see the new look.'); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
@@ -595,15 +694,17 @@ document.addEventListener('click',async e=>{
     case 'create': createTrip(); break;
     case 'closeSheet': sheet=null; renderLayer(); break;
     case 'sugg': sheet.draft.amt=0; renderLayer(); break;
-    case 'saveSaving': { const t=trip(sheet.trip), p=t.parts.find(x=>x.id===sheet.part), d=sheet.draft; const n=Math.max(1,payDates(d.freq,p.due).length);
-      const amt=d.method==='pot'||d.method==='account'?(d.amt||Math.max(1,Math.ceil((p.cost-p.saved)/n))):0, rem=Math.max(0,p.cost-p.saved);
+    case 'saveSaving': { const t=trip(sheet.trip), p=t.parts.find(x=>x.id===sheet.part), d=sheet.draft;
+      const amt=d.method==='pot'||d.method==='account'?(d.amt||suggest(p,d.freq)):0, rem=Math.max(0,p.cost-p.saved);
       busy=true; renderLayer();
       try{ await api.updatePart(p.id,{ method:d.method, freq:d.freq, amount:amt, into_label:d.into||'', checks:!!d.checks, schedule_from:iso(TODAY) });
         if(d.method==='paid'&&rem>0){ await api.addLog({ trip_id:t.id, part_id:p.id, amount:rem }); await api.addActivity(t.id,'packed',{ part:p.name, amount:p.cost }); }
         else await api.addActivity(t.id,'plan',{ part:p.name, desc: d.method==='adhoc'?'as and when':d.method==='paid'?'paid in full':money(amt)+' '+PER[d.freq] });
         busy=false; sheet=null; await reload(); const pt=partnerOf(t); showToast(`Saved.${pt&&pt.joined?' '+esc(pt.name)+' sees the plan, never your balance.':''}`); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
     case 'saveDetails': { const t=trip(sheet.trip), p=t.parts.find(x=>x.id===sheet.part), d=sheet.draft; const cost=+String(document.getElementById('pCost').value).replace(/[^\d.]/g,''), name=document.getElementById('pName').value.trim()||p.name, due=document.getElementById('pDue').value||p.due;
-      try{ await api.updatePart(p.id,{ name, cost:cost>=0?cost:p.cost, due, ...ownerFields(t,d.owner) }); sheet=null; await reload(); showToast('Part updated.'); }catch(err){ fail(err); } break; }
+      const dep=d.depOn?Math.max(0,+String(d.dep).replace(/[^\d.]/g,'')||0):0, dc=cost>=0?cost:p.cost;
+      if(dep&&dep>=dc){ showToast('Make the deposit less than the full cost.'); break; }
+      try{ await api.updatePart(p.id,{ name, cost:dc, due, deposit:dep, deposit_due:dep?(d.depDue||null):null, ...ownerFields(t,d.owner) }); sheet=null; await reload(); showToast('Part updated.'); }catch(err){ fail(err); } break; }
     case 'deletePart': if(!sheet.confirmDel){ sheet.confirmDel=true; sheet.open=true; renderLayer(); break; } try{ await api.deletePart(sheet.part); sheet=null; await reload(); showToast('Part deleted.'); }catch(err){ fail(err); } break;
     case 'doLog': { const v=+String(document.getElementById('lamt').value).replace(/[^\d.]/g,''); if(v>0) logSaving(sheet.trip,sheet.draft.part,Math.round(v*100)/100); else document.getElementById('lamt').focus(); break; }
     case 'undo': if(toast&&toast.undo){ const u=toast.undo; toast=null; renderLayer(); try{ await u(); }catch(err){ fail(err); } } break;
@@ -625,7 +726,7 @@ document.addEventListener('click',async e=>{
       try{ const pt=partnerOf(t), c=cost||0, base={ trip_id:t.id, name, due, method:'none', position:t.parts.length, schedule_from:iso(TODAY) };
         if(d.owner==='split'&&pt){ const a=Math.ceil(c/2); await api.addPart({ ...base, cost:a, ...ownerFields(t,user.id), amount:Math.ceil(a/n), into_label:t.place+' pot' }); await api.addPart({ ...base, cost:c-a, ...ownerFields(t,pt.id), amount:Math.ceil((c-a)/n), into_label:'', position:t.parts.length+1 }); }
         else await api.addPart({ ...base, cost:c, ...ownerFields(t,d.owner), amount:Math.ceil(c/n), into_label:mine?t.place+' pot':'' }); await api.addActivity(t.id,'part',{ part:name, cost:cost||0 }); busy=false; sheet=null; await reload(); showToast(`${esc(name)} added.`); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
-    case 'signOut': await api.signOut(); user=null; A=null; ls.set('bagsy-cache',null); sheet=null; UI={tab:'trips',screen:{name:'tabs'}}; render(); break;
+    case 'signOut': await pushOff(true); await api.signOut(); user=null; A=null; ls.set('bagsy-cache',null); sheet=null; UI={tab:'trips',screen:{name:'tabs'}}; render(); break;
     case 'wipe': api._wipe(); ls.set('bagsy-cache',null); location.reload(); break;
   }
 });
@@ -636,6 +737,8 @@ document.addEventListener('input',e=>{
   if(t.id==='start'&&plan&&t.value) plan.start=t.value;
   if(t.dataset.cost!==undefined&&plan){ plan.parts[+t.dataset.cost].cost=t.value.replace(/[^\d]/g,''); const ch=plan.parts.filter(p=>p.on), tot=ch.reduce((s,p)=>s+(+p.cost||0),0); const el=document.getElementById('planTotal'); if(el) el.textContent=money(tot); const w=document.getElementById('planWeek'); if(w) w.textContent=money(Math.ceil(tot/Math.max(1,weeksTo(plan.start))))+' a week'; const ok=ch.length&&ch.every(p=>+p.cost>0), b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!ok; const hn=document.getElementById('costHint'); if(hn) hn.style.display=ok?'none':''; }
   if(t.dataset.due!==undefined&&plan&&t.value) plan.parts[+t.dataset.due].due=t.value;
+  if(t.dataset.dep!==undefined&&plan) plan.parts[+t.dataset.dep].dep=t.value.replace(/[^\d]/g,'');
+  if(t.dataset.depdue!==undefined&&plan&&t.value) plan.parts[+t.dataset.depdue].depDue=t.value;
   if(t.id==='into'&&sheet) sheet.draft.into=t.value;
   if(t.dataset.bind&&sheet&&sheet.draft) sheet.draft[t.dataset.bind]=t.value;
   if(t.id==='nm'&&sheet) sheet.name=t.value;
@@ -647,6 +750,9 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='withPartner'&&plan){ plan.withPartner=t.checked; render(); }
   if(t.id==='chk'&&sheet) sheet.draft.checks=t.checked;
+  if(t.id==='pDepOn'&&sheet){ sheet.draft.depOn=t.checked; sheet.open=true; renderLayer(); }
+  if(t.dataset.depon!==undefined&&plan){ const x=plan.parts[+t.dataset.depon]; x.depOn=t.checked; if(t.checked&&!x.depDue) x.depDue=iso(addDays(TODAY,14)); render(); }
+  if(t.dataset.notify&&user&&A){ setNotify(t.dataset.notify,t.checked); }
   if(t.id==='start'&&plan) fixDues();
   if(t.dataset.cost!==undefined&&plan) render();
 });
@@ -660,6 +766,8 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') reload(); });
 setInterval(()=>{ if(document.visibilityState==='visible'&&user&&!sheet&&!plan) reload(); },30000);
 window.addEventListener('online',reload);
+window.addEventListener('bagsy-recovery',async()=>{ try{ user=await api.session(); }catch(e){} render(); });
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',e=>{ const u=e.data&&e.data.open; if(!u) return; const q=new URL(u).searchParams; navQ={ trip:q.get('trip'), tab:q.get('tab') }; reload(); });
 
 (async function boot(){
   showSplash();
@@ -668,7 +776,7 @@ window.addEventListener('online',reload);
   if(user && A && A.uid!==user.id) A=null;
   if(!user) A=null;
   booting=false; render();
-  if(user) reload();
+  if(user){ reload(); pushCheck(); }
 })();
 if('serviceWorker' in navigator && location.protocol==='https:' && !api.preview){
   const hadController = !!navigator.serviceWorker.controller;

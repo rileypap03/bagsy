@@ -170,3 +170,6 @@ create policy "members use parts" on public.parts for all using (public.is_membe
 create policy "members use logs" on public.logs for all using (public.is_member(trip_id)) with check (public.is_member(trip_id));
 create policy "members use replies" on public.check_replies for all using (public.is_member(trip_id)) with check (public.is_member(trip_id));
 create policy "members use activity" on public.activity for all using (public.is_member(trip_id)) with check (public.is_member(trip_id));
+
+-- ---------- later additions ----------
+-- After this file, also run update-2026-11-21.sql (deposits and push notifications).

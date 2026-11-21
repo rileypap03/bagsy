@@ -2,10 +2,15 @@
 (function(){
 const cfg = window.BAGSY_CONFIG || {};
 const PREVIEW = !cfg.supabaseUrl;
+/* a password-reset link from the email lands here with #...type=recovery; note it before Supabase tidies the address */
+const RECOVERY = /type=recovery|error_code=otp_expired/.test(location.hash + location.search);
+const APP_URL = location.origin + location.pathname;
 
 /* ---------- real backend ---------- */
 function realApi(){
-  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false, storageKey:'bagsy-auth' } });
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'implicit', storageKey:'bagsy-auth' } });
+  let recovering = RECOVERY;
+  sb.auth.onAuthStateChange(ev => { if(ev==='PASSWORD_RECOVERY'){ recovering = true; window.dispatchEvent(new Event('bagsy-recovery')); } });
   const ok = ({data,error}) => { if(error) throw error; return data; };
   return {
     preview:false,
@@ -13,6 +18,15 @@ function realApi(){
     async signIn(email, password){ const d = ok(await sb.auth.signInWithPassword({ email, password })); return d.user; },
     async signUp(email, password){ const d = ok(await sb.auth.signUp({ email, password })); if(!d.session) throw new Error('CONFIRM_ON'); return d.user; },
     async signOut(){ await sb.auth.signOut(); },
+    recovering(){ return recovering; },
+    async resetPassword(email){ ok(await sb.auth.resetPasswordForEmail(email, { redirectTo: APP_URL })); },
+    async newPassword(password){ ok(await sb.auth.updateUser({ password })); recovering = false; if(location.hash) history.replaceState(null,'',location.pathname); },
+    pushKey: cfg.vapidPublicKey || '',
+    async savePush(sub){ const j = sub.toJSON(); ok(await sb.from('push_subs').upsert({ endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth })); },
+    async dropPush(endpoint){ ok(await sb.from('push_subs').delete().eq('endpoint', endpoint)); },
+    async testPush(){ const { data:{ session } } = await sb.auth.getSession();
+      const r = await fetch(cfg.supabaseUrl + '/functions/v1/push', { method:'POST', headers:{ 'Content-Type':'application/json', apikey:cfg.supabaseAnonKey, Authorization:'Bearer ' + (session && session.access_token) }, body:JSON.stringify({ type:'test' }) });
+      const j = await r.json().catch(()=>({})); if(!r.ok || j.error) throw new Error(j.error || ('The notification server answered ' + r.status)); return j.sent || 0; },
     async load(uid){
       const [profiles, trips, members, parts, logs, replies, activity] = await Promise.all([
         sb.from('profiles').select('*'), sb.from('trips').select('*').order('start_date'), sb.from('trip_members').select('*'),
@@ -63,6 +77,11 @@ function previewApi(){
       const u={ id:uuid(), email, password }; db.users.push(u); db.profiles.push({ id:u.id, name:'', avatar:null, created_at:now() }); db.session=u.id; save(); return { id:u.id, email }; },
     async signIn(email, password){ await wait(); email=email.toLowerCase(); const u=db.users.find(x=>x.email===email&&(x.password||'')===password); if(!u) throw new Error('Invalid login credentials'); db.session=u.id; save(); return { id:u.id, email }; },
     async signOut(){ db.session = null; save(); },
+    recovering(){ return RECOVERY; },
+    async resetPassword(email){ await wait(); },
+    async newPassword(password){ await wait(); const u=db.users.find(x=>x.id===me()); if(u) u.password=password; save(); },
+    pushKey: '',
+    async savePush(){}, async dropPush(){}, async testPush(){ throw new Error('Notifications only work in the real app.'); },
     async load(){
       need(); await wait();
       const tripIds = new Set(db.trip_members.filter(m=>m.user_id===me()).map(m=>m.trip_id));

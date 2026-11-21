@@ -26,7 +26,17 @@ Source lives in the `_*.js`, `_*.css` and `*.tpl.*` files. Run `python3 build.py
 
 Supabase pauses free projects after a week with no activity. `.github/workflows/keepalive.yml` pings it every 3 days from GitHub, for free. To check it: repo → Actions → Keep Supabase awake → Run workflow.
 
-## Limits for now
+## Push notifications
 
-- No "forgot password" yet. If someone forgets theirs, an admin can send a reset from Authentication → Users; a proper reset screen is a next step.
-- No push notifications yet. Payment-day checks show in the Activity tab and as a badge on the app icon.
+Payday checks, your partner's savings, things running behind and deposits due. Set up once:
+
+1. Edge Functions → Deploy a new function → Via editor → name it `push` → paste `supabase/functions/push/index.ts` → turn **Verify JWT** off → Deploy.
+2. Edge Functions → Secrets: add `VAPID_PUBLIC` (same as `vapidPublicKey` in `config.js`), `VAPID_PRIVATE` and `PUSH_SECRET`. Keep the private ones out of this repo.
+3. SQL Editor: paste `update-2026-11-21.sql`, put your `PUSH_SECRET` where it says `PUSH_SECRET_HERE`, Run.
+4. On each phone: Bagsy (from the home screen) → You → Turn on notifications → Send a test.
+
+On iPhone, notifications only work for Bagsy opened from the home screen (iOS 16.4 or later).
+
+## Forgot password
+
+The sign-in screen has "Forgot your password?". Supabase sends the reset email. Its built-in email only delivers to members of your Supabase organisation and only a few an hour, so for anyone else (Ines) add your own SMTP under Authentication → Emails → SMTP settings (a Gmail app password works).
