@@ -177,6 +177,9 @@ img.scene{position:absolute;left:0;bottom:0;width:100%;height:auto;display:block
 .mast .av.I,.scenehead .av.I{border-color:var(--line-control);color:var(--ink-muted)}
 .mast .bagav,.scenehead .bagav{filter:drop-shadow(0 2px 3px rgba(60,40,0,.18))}
 .scenebox{background:#e8f9f7}
+/* iOS date inputs ignore width:100% and overflow the card */
+input[type=date].field{display:block;min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left;line-height:45px}
+input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 
 </style>
 </head>
