@@ -46,7 +46,7 @@ if(location.search && !/type=recovery/.test(location.search)) history.replaceSta
 function applyNav(){ if(!navQ||!A) return; const q=navQ; navQ=null; sheet=null;
   if(q.trip&&trip(q.trip)) UI.screen={name:'trip',id:q.trip}; else { UI.tab=q.tab==='activity'?'activity':'trips'; UI.screen={name:'tabs'}; }
   render(); view.scrollTop=0; }
-let push = { on:false, known:false, busy:false };   // notifications on this phone
+let push = { on:false, known:false, busy:false, key:'' };   // notifications on this phone
 
 function shape(raw, uid){
   const profiles = {}; for(const p of raw.profiles) profiles[p.id]=p;
@@ -279,7 +279,7 @@ function notifyCard(standalone,ios){
   const wrap = x => `<div class="card" style="display:flex;flex-direction:column;gap:12px">${x}</div>`;
   if(api.preview) return wrap(`<span class="sm muted">Notifications work in the real app, not in preview.</span>`);
   if(!canPush()) return wrap(`<span class="sm muted">${ios&&!standalone?'Put Bagsy on your home screen first (see below), then open it from there to turn on notifications.':'This browser can’t show notifications. Try Bagsy on your phone.'}</span>`);
-  if(!api.pushKey) return wrap(`<span class="sm muted">Notifications aren’t switched on for Bagsy yet.</span>`);
+  if(push.known&&!push.key) return wrap(`<span class="sm muted">Notifications aren’t switched on for Bagsy yet.</span>`);
   if(Notification.permission==='denied') return wrap(`<span class="sm muted">Notifications are blocked for Bagsy. Turn them on in your phone’s Settings → Notifications → Bagsy, then come back here.</span>`);
   if(!push.on) return wrap(`<span class="sm">Get a nudge on payment day, when ${partnerWord()} logs a saving, and if something’s running behind.</span><button class="btn" data-act="pushOn" ${push.busy?'disabled':''}>${push.busy?'Turning on…':'Turn on notifications'}</button>`);
   const n = Object.assign({checks:true,partner:true,behind:true}, me().notify||{});
@@ -289,7 +289,7 @@ function notifyCard(standalone,ios){
 }
 function partnerWord(){ const names=[...new Set(A.trips.map(partnerOf).filter(Boolean).map(p=>p.name))]; return names.length===1?esc(names[0]):'your partner'; }
 const keyBytes = b => { const s=atob((b+'='.repeat((4-b.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(s,c=>c.charCodeAt(0)); };
-async function pushCheck(){ if(!canPush()||api.preview||!user) return; try{ const r=await navigator.serviceWorker.ready, s=await r.pushManager.getSubscription(); push.on=!!s&&Notification.permission==='granted'; push.known=true; if(push.on) api.savePush(s).catch(()=>{}); render(); }catch(e){} }
+async function pushCheck(){ if(!canPush()||api.preview||!user) return; try{ push.key=await api.pushKey().catch(()=>''); push.known=true; render(); const r=await navigator.serviceWorker.ready, s=await r.pushManager.getSubscription(); push.on=!!s&&Notification.permission==='granted'; push.known=true; if(push.on) api.savePush(s).catch(()=>{}); render(); }catch(e){} }
 async function pushOn(){
   push.busy=true; render();
   try{
@@ -297,7 +297,9 @@ async function pushOn(){
     if(perm!=='granted'){ push.busy=false; render(); showToast(perm==='denied'?'Notifications are blocked. You can allow them in your phone’s Settings.':'No problem. You can turn them on here any time.'); return; }
     const r = await navigator.serviceWorker.ready;
     let s = await r.pushManager.getSubscription();
-    if(!s) s = await r.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:keyBytes(api.pushKey) });
+    if(!push.key) push.key = await api.pushKey();
+    if(!push.key) throw new Error('Notifications aren’t switched on for Bagsy yet.');
+    if(!s) s = await r.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:keyBytes(push.key) });
     await api.savePush(s); push.on=true; push.busy=false; render(); showToast('Notifications are on for this phone.');
   }catch(e){ push.busy=false; render(); fail(e); }
 }

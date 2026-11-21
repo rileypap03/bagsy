@@ -7,8 +7,8 @@
 //   3. from the app's "Send a test" button, signed in                                  {type:'test'}
 // 1 and 2 carry the x-bagsy-secret header. 3 carries the person's own sign-in token.
 //
-// Secrets to set in Supabase → Edge Functions → Secrets:
-//   VAPID_PUBLIC, VAPID_PRIVATE, PUSH_SECRET   (SUPABASE_URL and the service key are provided automatically)
+// No secrets to set by hand: the push keys and the database's password for this function live in the
+// push_config table, which only the server can read. On first use this function makes the push keys itself.
 // Deploy with "Verify JWT" switched OFF (this function checks its own callers).
 
 const env = (k: string) => (typeof Deno !== 'undefined' ? Deno.env.get(k) : (globalThis as any).process?.env?.[k]) || '';
@@ -53,10 +53,11 @@ export async function encrypt(payload: string, p256dh: string, auth: string) {
   const rs = new Uint8Array([0, 0, 16, 0]); // record size 4096
   return cat(salt, rs, new Uint8Array([asPub.length]), asPub, ct);
 }
+export const keys = { pub: env('VAPID_PUBLIC'), priv: env('VAPID_PRIVATE'), secret: env('PUSH_SECRET') };
 export async function sendPush(sub: { endpoint: string; p256dh: string; auth: string }, msg: unknown) {
   const body = await encrypt(JSON.stringify(msg), sub.p256dh, sub.auth);
   const r = await fetch(sub.endpoint, { method: 'POST', body, headers: {
-    Authorization: await vapidAuth(sub.endpoint, env('VAPID_PUBLIC'), env('VAPID_PRIVATE'), APP),
+    Authorization: await vapidAuth(sub.endpoint, keys.pub, keys.priv, APP),
     'Content-Encoding': 'aes128gcm', 'Content-Type': 'application/octet-stream', TTL: '86400', Urgency: 'normal' } });
   return r.status;
 }
@@ -73,6 +74,21 @@ async function db(path: string, init: RequestInit = {}) {
   const r = await fetch(env('SUPABASE_URL') + '/rest/v1/' + path, { ...init, headers });
   if (!r.ok) throw new Error(path + ' → ' + r.status + ' ' + await r.text());
   return r.status === 204 ? null : r.json();
+}
+/* the push keys and the shared password, kept in push_config (made here on first run) */
+async function loadKeys() {
+  if (keys.pub && keys.priv && keys.secret) return;
+  const [row] = await db('push_config?id=eq.1&select=vapid_public,vapid_private,secret');
+  if (!row) throw new Error('push_config is empty: run update-2026-11-21.sql');
+  if (!row.vapid_public || !row.vapid_private) {
+    const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']) as CryptoKeyPair;
+    const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey) as JsonWebKey;
+    row.vapid_public = b64u.enc(await crypto.subtle.exportKey('raw', kp.publicKey)); row.vapid_private = jwk.d;
+    // only fill them in if nobody else did at the same moment
+    await db('push_config?id=eq.1&vapid_public=is.null', { method: 'PATCH', body: JSON.stringify({ vapid_public: row.vapid_public, vapid_private: row.vapid_private }) });
+    const [again] = await db('push_config?id=eq.1&select=vapid_public,vapid_private,secret'); Object.assign(row, again);
+  }
+  keys.pub = row.vapid_public; keys.priv = row.vapid_private; keys.secret = row.secret;
 }
 const inList = (ids: string[]) => '(' + ids.map(encodeURIComponent).join(',') + ')';
 
@@ -208,8 +224,9 @@ export async function handler(req: Request) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const body = await req.json().catch(() => ({}));
+    await loadKeys();
     if (body.type === 'test') return json(await test(req));
-    if (!env('PUSH_SECRET') || req.headers.get('x-bagsy-secret') !== env('PUSH_SECRET')) return json({ error: 'Not allowed' }, 401);
+    if (!keys.secret || req.headers.get('x-bagsy-secret') !== keys.secret) return json({ error: 'Not allowed' }, 401);
     if (body.type === 'activity') {
       const work = onActivity(body.record).catch(e => console.log('activity push failed', String(e)));
       // answer the database straight away and finish the work in the background

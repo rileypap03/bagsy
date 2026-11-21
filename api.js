@@ -21,7 +21,7 @@ function realApi(){
     recovering(){ return recovering; },
     async resetPassword(email){ ok(await sb.auth.resetPasswordForEmail(email, { redirectTo: APP_URL })); },
     async newPassword(password){ ok(await sb.auth.updateUser({ password })); recovering = false; if(location.hash) history.replaceState(null,'',location.pathname); },
-    pushKey: cfg.vapidPublicKey || '',
+    async pushKey(){ return ok(await sb.rpc('push_public_key')) || ''; },
     async savePush(sub){ const j = sub.toJSON(); ok(await sb.from('push_subs').upsert({ endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth })); },
     async dropPush(endpoint){ ok(await sb.from('push_subs').delete().eq('endpoint', endpoint)); },
     async testPush(){ const { data:{ session } } = await sb.auth.getSession();
@@ -80,7 +80,7 @@ function previewApi(){
     recovering(){ return RECOVERY; },
     async resetPassword(email){ await wait(); },
     async newPassword(password){ await wait(); const u=db.users.find(x=>x.id===me()); if(u) u.password=password; save(); },
-    pushKey: '',
+    async pushKey(){ return ''; },
     async savePush(){}, async dropPush(){}, async testPush(){ throw new Error('Notifications only work in the real app.'); },
     async load(){
       need(); await wait();

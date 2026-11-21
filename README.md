@@ -30,10 +30,9 @@ Supabase pauses free projects after a week with no activity. `.github/workflows/
 
 Payday checks, your partner's savings, things running behind and deposits due. Set up once:
 
-1. Edge Functions → Deploy a new function → Via editor → name it `push` → paste `supabase/functions/push/index.ts` → turn **Verify JWT** off → Deploy.
-2. Edge Functions → Secrets: add `VAPID_PUBLIC` (same as `vapidPublicKey` in `config.js`), `VAPID_PRIVATE` and `PUSH_SECRET`. Keep the private ones out of this repo.
-3. SQL Editor: paste `update-2026-11-21.sql`, put your `PUSH_SECRET` where it says `PUSH_SECRET_HERE`, Run.
-4. On each phone: Bagsy (from the home screen) → You → Turn on notifications → Send a test.
+1. SQL Editor: paste `update-2026-11-21.sql` → Run. (Nothing to fill in. The push keys are made and kept in the database, readable only by the server.)
+2. Edge Functions → Deploy a new function → Via editor → name it `push` → paste `supabase/functions/push/index.ts` → Deploy, then Settings → turn **Verify JWT** off → Save.
+3. On each phone: Bagsy (from the home screen) → You → Turn on notifications → Send a test.
 
 On iPhone, notifications only work for Bagsy opened from the home screen (iOS 16.4 or later).
 

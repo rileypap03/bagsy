@@ -1,6 +1,5 @@
 -- Bagsy update, 21 Nov 2026: push notifications and deposits.
--- Paste into Supabase → SQL Editor → New query → Run. Safe to run more than once.
--- Before running: replace PUSH_SECRET_HERE with the same PUSH_SECRET you set on the "push" Edge Function.
+-- Paste into Supabase → SQL Editor → New query → Run. Safe to run more than once. Nothing to fill in.
 
 -- ---------- deposits (e.g. package holidays: pay a deposit first, the balance later) ----------
 alter table public.parts add column if not exists deposit numeric(10,2) not null default 0;
@@ -27,23 +26,34 @@ create table if not exists public.push_sent (key text primary key, sent_at times
 alter table public.push_sent enable row level security;
 revoke all on public.push_sent from anon, authenticated;
 
--- ---------- where the push function lives, and its password ----------
+-- ---------- push keys and the password between the database and the push function ----------
+-- Only the server can read this table. The push function fills in its keys the first time it runs.
+create table if not exists public.push_config (
+  id int primary key default 1 check (id = 1),
+  url text not null,
+  secret text not null default replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
+  vapid_public text,
+  vapid_private text
+);
+alter table public.push_config enable row level security;
+revoke all on public.push_config from anon, authenticated;
+insert into public.push_config (id, url) values (1, 'https://ukhqvahpbrymcyqnpiqr.supabase.co/functions/v1/push') on conflict (id) do nothing;
+
+-- the app asks for the public half of the push key (safe to share)
+create or replace function public.push_public_key() returns text
+language sql security definer stable set search_path = public as $$ select vapid_public from push_config where id = 1 $$;
+revoke execute on function public.push_public_key() from public, anon;
+grant execute on function public.push_public_key() to authenticated;
+
 create extension if not exists pg_net;
 create extension if not exists pg_cron;
-do $$ begin
-  if not exists (select 1 from vault.secrets where name = 'bagsy_push_url') then
-    perform vault.create_secret('https://ukhqvahpbrymcyqnpiqr.supabase.co/functions/v1/push', 'bagsy_push_url'); end if;
-  if not exists (select 1 from vault.secrets where name = 'bagsy_push_secret') then
-    perform vault.create_secret('PUSH_SECRET_HERE', 'bagsy_push_secret'); end if;
-end $$;
 
 create or replace function public.call_push(payload jsonb) returns void
 language plpgsql security definer set search_path = public as $$
 declare u text; s text;
 begin
-  select decrypted_secret into u from vault.decrypted_secrets where name = 'bagsy_push_url';
-  select decrypted_secret into s from vault.decrypted_secrets where name = 'bagsy_push_secret';
-  if u is null or s is null then return; end if;
+  select url, secret into u, s from push_config where id = 1;
+  if u is null then return; end if;
   perform net.http_post(url := u, body := payload,
     headers := jsonb_build_object('Content-Type','application/json','x-bagsy-secret', s),
     timeout_milliseconds := 20000);
