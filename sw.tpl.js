@@ -3,7 +3,7 @@
 const CACHE = 'bagsy-__VERSION__';
 const SHELL = ['./','index.html','app.js','api.js','config.js','supabase.js','manifest.webmanifest',
   'img/plane.png','img/key.png','img/tickets.png','img/wallet.png','img/case.png','img/package.png','img/bed.png','img/splash-end.jpg','img/bagsy-black.svg','img/bag-suitcase.png','img/bag-backpack.png','img/bag-duffel.png','img/bag-hatbox.png','img/bag-trunk.png','img/bag-tote.png','img/bag-satchel.png','img/bag-bumbag.png',
-  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
+  'img/scene-coast.webp','img/scene-city.webp','img/scene-mountains.webp','img/scene-countryside.webp','img/scene-tropical.webp','img/scene-desert.webp','img/scene-snow.webp','img/scene-lakes.webp','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache:'reload' })))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

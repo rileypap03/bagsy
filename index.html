@@ -168,6 +168,15 @@ html,body{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
 .bagpick button img{width:56px;height:56px}
 .bagpick button[aria-pressed=true]{background:#fff;outline:2px solid var(--ink);outline-offset:-2px}
 .avbtn .pen{right:-4px;bottom:2px}
+/* light 3D scenes: picture along the bottom, its sky colour above, dark text */
+img.scene{position:absolute;left:0;bottom:0;width:100%;height:auto;display:block;pointer-events:none}
+.scenehead{position:relative;height:148px;overflow:hidden}
+.mast{color:var(--ink);--on-mast-muted:#4A5058;--ok-mast:#137A3F}
+.mast .round.veil{background:rgba(255,255,255,.75);color:var(--ink);box-shadow:0 1px 3px rgba(17,18,20,.08)}
+.mast .split>span{background:rgba(17,18,20,.1)}.mast .split>span>i{background:var(--brass)}
+.mast .av.I,.scenehead .av.I{border-color:var(--line-control);color:var(--ink-muted)}
+.mast .bagav,.scenehead .bagav{filter:drop-shadow(0 2px 3px rgba(60,40,0,.18))}
+.scenebox{background:#e8f9f7}
 
 </style>
 </head>

@@ -194,7 +194,7 @@ function trips(){
   let h=`<div class="pad">${banner()}<div class="top"><h1>Trips</h1><button class="round" data-act="plan" aria-label="Plan a trip">${I(IC.plus,18,2.4)}</button></div>`;
   if(!live.length) h+=`<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h1 style="font-size:24px">Where to next?</h1><p class="muted" style="margin:0">Plan a trip, split it into parts, and invite the person you’re going with.</p><button class="btn" data-act="plan">Plan a trip</button></div>`;
   else { h+=`<h2>Coming up</h2>`; for(const t of live){ const tot=total(t),sv=savedOf(t),pct=tot?Math.round(sv/tot*100):0, pt=partnerOf(t);
-    h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div style="position:relative;height:148px;background:var(--masthead)">${stars(4)}${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px;background:rgba(255,255,255,.18);color:#fff;box-shadow:none">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:10px;top:6px;display:flex;gap:2px">${[user.id].concat(pt?[pt.id]:[]).map(p=>av(p,44,t)).join('')}</span></div>
+    h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div class="scenehead" style="${sceneBg(t)}">${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:10px;top:6px;display:flex;gap:2px">${[user.id].concat(pt?[pt.id]:[]).map(p=>av(p,44,t)).join('')}</span></div>
     <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px"><div class="row" style="align-items:flex-end"><div class="col"><span class="cap muted">${tripDates(t)} · ${weeksTo(t.start)} weeks to go</span><span style="font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.03em">${money(sv)} <span class="muted" style="font-size:15px;font-weight:500;letter-spacing:0">of ${money(tot)}</span></span></div><span class="sm b ok" style="padding-bottom:4px">${pct}% covered</span></div>
     <div style="display:flex;gap:3px;height:6px">${t.parts.map(p=>`<span class="bar" style="flex:${p.cost||1}"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span>`).join('')}</div>
     ${pt&&!pt.joined?`<span class="notice" style="padding:10px 12px;align-items:center"><span class="b" style="color:var(--ink)">Invite ${esc(pt.name)}</span> They haven’t joined yet</span>`:''}
@@ -206,9 +206,9 @@ function trips(){
 function tripView(t){
   const tot=total(t), sv=savedOf(t), pct=tot?Math.round(sv/tot*100):0, pt=partnerOf(t);
   const mine=t.parts.filter(p=>isMine(p)&&(p.method==='pot'||p.method==='account')&&p.saved<p.cost);
-  const nxt = mine.length?`Next saving <b style="color:#fff">${money(mine.reduce((s,p)=>s+Math.min(p.amt,p.cost-p.saved),0))} on ${fmt(nextFriday())}</b>`:`No saving due from you this week`;
+  const nxt = mine.length?`Next saving <b style="color:var(--ink)">${money(mine.reduce((s,p)=>s+Math.min(p.amt,p.cost-p.saved),0))} on ${fmt(nextFriday())}</b>`:`No saving due from you this week`;
   const people=[user.id].concat(pt?[pt.id]:[]);
-  let h=`<div class="mast">${stars(8)}${scene(t)}<div class="in"><div class="row" style="width:100%;justify-content:space-between;height:52px"><button class="round veil" data-act="home" aria-label="Back">${I(IC.back)}</button><span class="pill" style="background:rgba(255,255,255,.16);color:#fff;box-shadow:none;font-size:15px">${flag(t)}${esc(t.place)}</span><button class="round veil" data-act="tripSettings" aria-label="Trip settings">${I(IC.gear,18,2)}</button></div>
+  let h=`<div class="mast" style="${sceneBg(t)}">${scene(t)}<div class="in"><div class="row" style="width:100%;justify-content:space-between;height:52px"><button class="round veil" data-act="home" aria-label="Back">${I(IC.back)}</button><span class="pill" style="font-size:15px">${flag(t)}${esc(t.place)}</span><button class="round veil" data-act="tripSettings" aria-label="Trip settings">${I(IC.gear,18,2)}</button></div>
   <div class="row" style="gap:8px;margin-top:18px;color:var(--on-mast-muted)"><span style="display:flex;gap:2px">${people.map(p=>av(p,36,t)).join('')}</span>${tripDates(t)}${pt?' · you and '+esc(pt.name):''}</div>
   <div class="amt">${money(sv)}</div><div style="margin-top:8px;color:var(--on-mast-muted)"><b style="color:var(--ok-mast)">${pct}% covered</b> of ${money(tot)} · ${weeksTo(t.start)} weeks to go</div>
   <div class="split" style="width:280px;margin-top:16px">${t.parts.map(p=>`<span style="flex:${p.cost||1}"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span>`).join('')}</div>
@@ -320,10 +320,10 @@ function planView(){
   let body='', bottom='';
   const pn = P.partnerName.trim()||'them';
   if(step===1){
-    const kind = P.kind || PLACE_KIND[P.place.trim().toLowerCase()] || 'coast', preset = !!PLACE_KIND[P.place.trim().toLowerCase()] && SCENES[PLACE_KIND[P.place.trim().toLowerCase()]] && !SCENE_KINDS.includes(PLACE_KIND[P.place.trim().toLowerCase()]);
+    const kind = sceneKind({place:P.place,kind:P.kind}), preset = false;
     body=`<div style="padding:4px 8px 0"><h1>Where are you going?</h1><p class="muted" style="margin:6px 0 0">Plan it now. You’ll invite the other person at the end.</p></div>
     <div class="card" style="display:flex;flex-direction:column;gap:14px"><label class="b" for="place">Where</label><input id="place" class="field" value="${esc(P.place)}" placeholder="A city or somewhere warm" autocomplete="off"><div class="chips">${PLACES.map(p=>`<button class="chip" data-place="${p}" aria-pressed="${P.place===p}">${p}</button>`).join('')}</div>
-    <div id="scenePrev" class="scenebox">${stars(3)}${scene({place:P.place,kind:P.kind})}</div>
+    <div id="scenePrev" class="scenebox" style="${sceneBg({place:P.place,kind:P.kind})}">${scene({place:P.place,kind:P.kind})}</div>
     ${preset?'':`<div class="chips" role="group" aria-label="Scene">${SCENE_KINDS.map(k=>`<button class="chip" data-kind="${k}" aria-pressed="${kind===k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`}
     <label class="b" for="start">First night</label><input id="start" type="date" class="field" value="${P.start}" min="${iso(TODAY)}">
     <div class="row"><span class="col"><span class="b">Nights</span><span class="cap muted">Roughly is fine</span></span><div class="stepper" style="padding:0;background:none"><button data-nights="-1" aria-label="One less night">−</button><span class="b" style="min-width:28px;text-align:center;font-size:17px" aria-live="polite">${P.nights}</span><button data-nights="1" aria-label="One more night">+</button></div></div>
@@ -361,7 +361,7 @@ function fixDues(){ plan.parts.forEach(p=>{ p.due=partDue(p.name,plan.start); })
 async function createTrip(){
   if(busy) return; busy=true; render();
   const P=plan, chosen=P.parts.filter(p=>p.on);
-  const kind = PLACE_KIND[P.place.trim().toLowerCase()] || P.kind || 'coast';
+  const kind = sceneKind({place:P.place,kind:P.kind});
   try{
     const t = await api.createTrip({ place:P.place.trim(), kind, start_date:P.start, nights:P.nights, partner_name:P.withPartner?P.partnerName.trim():'' },
       chosen.flatMap(p=>{ const cost=Math.max(0,Math.round(+p.cost||0)), n=Math.max(1,payDates('week',p.due).length);
@@ -462,14 +462,14 @@ function avatarSheet(){
 async function loadInvite(s){ try{ s.preview = await api.invitePreview(s.code); }catch(e){ s.preview=null; s.err=friendly(e); } if(sheet===s) renderLayer(); }
 function joinSheet(){
   const s=sheet, p=s.preview, already=A.trips.some(t=>t.code===s.code);
-  return wrap('join','jt',`${sheetHead('jt','Join a trip')}${s.preview===undefined?`<div class="center" style="min-height:120px"><span class="spin"></span></div>`:p?`<div class="scenebox" style="height:120px">${stars(3)}${scene({place:p.place})}</div><div class="col"><span class="b" style="font-size:18px">${esc(p.from||'Someone')} invited you to ${esc(p.place)}</span><span class="cap muted">${fmt(D(p.start_date),false)} ${D(p.start_date).getUTCFullYear()}</span></div><p class="sm muted" style="margin:0">You’ll see the whole trip and the parts set aside for you. Your money stays in your own bank.</p><button class="btn" data-act="doJoin" ${busy?'disabled':''}>${already?'Open the trip':'Join the trip'}</button>`:`<p class="behind" style="margin:0">${esc(s.err||'That code doesn’t match a trip. Check it with whoever invited you.')}</p><button class="btn sec" data-act="enterCode">Type the code</button>`}`);
+  return wrap('join','jt',`${sheetHead('jt','Join a trip')}${s.preview===undefined?`<div class="center" style="min-height:120px"><span class="spin"></span></div>`:p?`<div class="scenebox" style="height:120px;${sceneBg({place:p.place})}">${scene({place:p.place})}</div><div class="col"><span class="b" style="font-size:18px">${esc(p.from||'Someone')} invited you to ${esc(p.place)}</span><span class="cap muted">${fmt(D(p.start_date),false)} ${D(p.start_date).getUTCFullYear()}</span></div><p class="sm muted" style="margin:0">You’ll see the whole trip and the parts set aside for you. Your money stays in your own bank.</p><button class="btn" data-act="doJoin" ${busy?'disabled':''}>${already?'Open the trip':'Join the trip'}</button>`:`<p class="behind" style="margin:0">${esc(s.err||'That code doesn’t match a trip. Check it with whoever invited you.')}</p><button class="btn sec" data-act="enterCode">Type the code</button>`}`);
 }
 function codeSheet(){ return wrap('code','ct',`${sheetHead('ct','Got an invite code?')}<input id="joinCode" class="field code" autocapitalize="characters" maxlength="8" placeholder="ABC123" value="${esc(sheet.val||'')}"><button class="btn" data-act="lookupCode">Find the trip</button>`); }
 function settingsSheet(){
   const t=trip(sheet.trip), d=sheet.draft, creator=t.createdBy===user.id, pt=partnerOf(t);
   return wrap('settings','tst',`${sheetHead('tst','Trip settings')}
   <label class="b" for="sPlace">Where</label><input id="sPlace" class="field" data-bind="place" value="${esc(d.place)}">
-  <div class="chips" role="group" aria-label="Scene">${SCENE_KINDS.concat(['lisbon','barcelona','copenhagen','rome']).map(k=>`<button class="chip" data-skind="${k}" aria-pressed="${(d.kind||sceneKind(t))===k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>
+  <div class="chips" role="group" aria-label="Scene">${SCENE_KINDS.map(k=>`<button class="chip" data-skind="${k}" aria-pressed="${sceneKind({place:t.place,kind:d.kind||t.kind})===k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>
   <label class="b" for="sStart">First night</label><input id="sStart" type="date" class="field" data-bind="start" value="${d.start}">
   <div class="row"><span class="col"><span class="b">Nights</span></span><div class="stepper" style="padding:0;background:none"><button data-snights="-1" aria-label="One less night">−</button><span class="b" style="min-width:28px;text-align:center;font-size:17px">${d.nights}</span><button data-snights="1" aria-label="One more night">+</button></div></div>
   <button class="btn" data-act="saveTrip" ${busy?'disabled':''}>Save</button>
@@ -616,7 +616,7 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
-  if(t.id==='place'&&plan){ plan.place=t.value; plan.kind=null; const b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!(t.value.trim()&&(!plan.withPartner||plan.partnerName.trim())); document.querySelectorAll('[data-place]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.place===t.value)); const sp=document.getElementById('scenePrev'); if(sp) sp.innerHTML=stars(3)+scene({place:t.value}); }
+  if(t.id==='place'&&plan){ plan.place=t.value; plan.kind=null; const b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!(t.value.trim()&&(!plan.withPartner||plan.partnerName.trim())); document.querySelectorAll('[data-place]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.place===t.value)); const sp=document.getElementById('scenePrev'); if(sp){ sp.innerHTML=scene({place:t.value}); sp.setAttribute('style',sceneBg({place:t.value})); } document.querySelectorAll('[data-kind]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.kind===sceneKind({place:t.value}))); }
   if(t.id==='pname'&&plan){ plan.partnerName=t.value; const b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!(plan.place.trim()&&t.value.trim()); }
   if(t.id==='start'&&plan&&t.value) plan.start=t.value;
   if(t.dataset.cost!==undefined&&plan){ plan.parts[+t.dataset.cost].cost=t.value.replace(/[^\d]/g,''); const ch=plan.parts.filter(p=>p.on), tot=ch.reduce((s,p)=>s+(+p.cost||0),0); const el=document.getElementById('planTotal'); if(el) el.textContent=money(tot); const w=document.getElementById('planWeek'); if(w) w.textContent=money(Math.ceil(tot/Math.max(1,weeksTo(plan.start))))+' a week'; const ok=ch.length&&ch.every(p=>+p.cost>0), b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!ok; const hn=document.getElementById('costHint'); if(hn) hn.style.display=ok?'none':''; }
