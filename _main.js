@@ -344,6 +344,7 @@ function planView(){
     const chosen=P.parts.filter(p=>p.on);
     body=`<div style="padding:4px 8px 0"><h1>Who’s bagsying what?</h1><p class="muted" style="margin:6px 0 0">Give each part an owner, or split it between you, and a date it’s needed by. Money stays in each person’s own bank.</p></div>
     ${chosen.map(p=>{ const i=P.parts.indexOf(p); return `<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${partIcon(p.name)}<span class="col"><span class="b" style="font-size:16px">${esc(p.name)}</span><span class="cap muted">${money(+p.cost||0)}</span></span></div>${P.withPartner?`<div class="seg" role="group" aria-label="Who bagsies ${esc(p.name)}">${['me','partner','split'].map(w=>`<button data-owner="${i}" data-w="${w}" aria-pressed="${p.owner===w}">${w==='me'?'Me':w==='split'?'Split it':esc(pn)}</button>`).join('')}</div>${p.owner==='split'?`<span class="cap muted">You each save ${money(Math.round((+p.cost||0)/2))} towards it, in your own bank.</span>`:''}`:''}<label class="cap muted" for="due${i}">${p.depOn?'Rest needed by':'Needed by'}</label><input id="due${i}" type="date" class="field" data-due="${i}" value="${p.due}" min="${iso(TODAY)}">
+    ${!P.withPartner||p.owner!=='partner'?`<div class="row" style="min-height:44px;border-top:1px solid var(--line-subtle);padding-top:12px"><label class="col" for="had${i}"><span class="b">Already saved some?</span><span class="cap muted">${P.withPartner&&p.owner==='split'?'Towards your half. Leave blank if not':'Leave blank if not'}</span></label><div class="money" style="height:48px;width:120px;flex:none;background:#fff;border:1.5px solid var(--line-control)"><span class="b muted">£</span><input id="had${i}" inputmode="decimal" enterkeyhint="done" data-had="${i}" value="${esc(p.had||'')}" placeholder="0"></div></div>`:''}
     ${p.name==='Package holiday'||p.depOn?`<label class="row" style="min-height:44px;border-top:1px solid var(--line-subtle);padding-top:12px"><span class="col"><span class="b">Paying a deposit first?</span><span class="cap muted">Most package holidays take a deposit when you book</span></span><input type="checkbox" class="switch" data-depon="${i}" ${p.depOn?'checked':''}></label>
     ${p.depOn?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="col"><label class="cap muted" for="dep${i}">Deposit${p.owner==='split'&&P.withPartner?' (total)':''}</label><div class="money" style="height:48px;background:#fff;border:1.5px solid var(--line-control)"><span class="b muted">£</span><input id="dep${i}" inputmode="numeric" data-dep="${i}" value="${esc(p.dep||'')}" placeholder="0"></div></div><div class="col"><label class="cap muted" for="depd${i}">Deposit by</label><input id="depd${i}" type="date" class="field" data-depdue="${i}" value="${p.depDue}" min="${iso(TODAY)}"></div></div>`:''}`:''}</div>`; }).join('')}`;
     const mine=chosen.reduce((s,p)=>s+(!P.withPartner||p.owner==='me'?(+p.cost||0):p.owner==='split'?Math.round((+p.cost||0)/2):0),0);
@@ -369,6 +370,9 @@ async function createTrip(){
         const row=(c,mine,dp)=>({ name:p.name, cost:c, owner:mine?user.id:null, for_partner:!mine, due:p.due, method:'none', freq:'week', amount:Math.ceil(c/n), into_label:mine?P.place.trim()+' pot':'', checks:true, schedule_from:iso(TODAY), deposit:dp>0?dp:0, deposit_due:dp>0?p.depDue:null });
         if(P.withPartner&&p.owner==='split'){ const a=Math.ceil(cost/2), da=Math.ceil(dep/2); return [row(a,true,da),row(cost-a,false,dep-da)]; }
         return [row(cost,!P.withPartner||p.owner==='me',dep)]; }));
+    { const had=chosen.filter(p=>Math.round(+p.had||0)>0&&(!P.withPartner||p.owner!=='partner'));
+      if(had.length){ await reload(); const nt=trip(t.id);
+        for(const p of had){ const mp=nt&&nt.parts.find(x=>x.name===p.name&&x.owner===user.id); if(mp) await api.addLog({ trip_id:t.id, part_id:mp.id, amount:Math.min(Math.round(+p.had),mp.cost) }); } } }
     await api.addActivity(t.id,'planned',{ total:chosen.reduce((s,p)=>s+Math.max(0,Math.round(+p.cost||0)),0), parts:chosen.length });
     plan=null; UI.screen={name:'trip',id:t.id}; busy=false; await reload(); view.scrollTop=0;
     showToast(P.withPartner?`${esc(t.place)} is planned. Now invite ${esc(P.partnerName.trim())}.`:`${esc(t.place)} is planned. Tap a part to set how you’re saving.`);
@@ -427,8 +431,12 @@ function savingSheet(){
     ${d.depOn?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="col"><label class="cap muted" for="pDep">Deposit</label><div class="money" style="height:48px;background:#fff;border:1.5px solid var(--line-control)"><span class="b muted">£</span><input id="pDep" inputmode="decimal" data-bind="dep" value="${esc(d.dep)}"></div></div><div class="col"><label class="cap muted" for="pDepDue">Deposit by</label><input id="pDepDue" type="date" class="field" data-bind="depDue" value="${d.depDue}"></div></div>`:''}
     ${owners.length>1?`<span class="cap muted">Who’s bagsying it</span><div class="seg">${owners.map(([id,l])=>`<button data-powner="${id}" aria-pressed="${d.owner===id}">${esc(l)}</button>`).join('')}</div>`:''}
     <button class="btn s" data-act="saveDetails">Save details</button><button class="link behind" data-act="deletePart" style="align-self:flex-start">${sheet.confirmDel?'Tap again to delete this part and its logged savings':'Delete this part'}</button></div></details>`;
-  return wrap('saving','st',`<span class="grab" aria-hidden="true"></span><div class="row">${partIcon(p.name)}<div class="col"><span id="st" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${theirs?esc(ownerName)+'’s saving':'How I’m saving'}</span><span class="cap muted">${esc(p.name)} · ${money(p.saved)} of ${money(p.cost)} · due ${fmt(D(p.due))}</span></div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>
-  ${theirs?`<div class="notice">${I(IC.lock,18,2)}<span>This is ${esc(ownerName)}’s part, so ${esc(ownerName)} sets how it’s saved. ${p.method==='none'?'They haven’t set it up yet.':p.method==='paid'?'It’s paid in full.':p.method==='adhoc'?'They’re saving as and when.':`They’re saving ${money(p.amt)} ${PER[p.freq]}.`} You can log a saving to help out.</span></div><button class="btn sec" data-log="${t.id}" data-for="${p.id}">Help ${esc(ownerName)} out</button>${details}`:`
+  const plogs=t.logs.filter(l=>l.part_id===p.id).sort((a,b)=>a.created_at<b.created_at?1:-1);
+  const logsBlock = plogs.length?`<div style="display:flex;flex-direction:column;gap:4px"><span class="b">Logged so far</span><div class="card sm" style="padding:2px 14px;background:var(--surface-page);box-shadow:none">${plogs.map((l,i)=>{ const ed=sheet.editLog===l.id, who=nameOf(t,l.user_id);
+    return `<div style="padding:10px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${ed?`<div class="col" style="gap:10px"><span class="cap muted">${fmt(D(localDay(l.created_at)),false)} · ${esc(who)}</span><div class="money" style="height:48px;background:#fff;border:1.5px solid var(--line-control)"><span class="b muted">£</span><input id="elamt" inputmode="decimal" enterkeyhint="done" value="${+l.amount}"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn s" data-act="saveLog">Save</button><button class="btn s sec" data-act="cancelLog">Cancel</button></div><button class="link behind" data-act="delLog" style="align-self:flex-start;padding:0">${sheet.confirmLogDel?'Tap again to delete this saving':'Delete this saving'}</button></div>`
+      :`<div class="row"><span class="col"><span class="b">${money(+l.amount)}</span><span class="cap muted">${fmt(D(localDay(l.created_at)),false)} · ${esc(who)}</span></span><button class="link" data-editlog="${l.id}" style="flex:none">Edit</button></div>`}</div>`; }).join('')}</div></div>`:'';
+  return wrap('saving','st',`<span class="grab" aria-hidden="true"></span><div class="row">${partIcon(p.name)}<div class="col"><span id="st" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${theirs?esc(ownerName)+'’s saving':'How I’m saving'}</span><span class="cap muted">${esc(p.name)} · ${money(p.saved)} of ${money(p.cost)} · due ${fmt(D(p.due))} · <button class="link" data-act="editPart" style="padding:0;font:inherit;color:var(--ink);text-decoration:underline">Change</button></span></div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>
+  ${theirs?`<div class="notice">${I(IC.lock,18,2)}<span>This is ${esc(ownerName)}’s part, so ${esc(ownerName)} sets how it’s saved. ${p.method==='none'?'They haven’t set it up yet.':p.method==='paid'?'It’s paid in full.':p.method==='adhoc'?'They’re saving as and when.':`They’re saving ${money(p.amt)} ${PER[p.freq]}.`} You can log a saving to help out.</span></div><button class="btn sec" data-log="${t.id}" data-for="${p.id}">Help ${esc(ownerName)} out</button>${logsBlock}${details}`:`
   <div role="radiogroup" aria-labelledby="mq" style="display:flex;flex-direction:column;gap:8px"><span id="mq" class="b">Where does the money go?</span>${methods.map(([id,nm,h,tag])=>`<button class="radio" role="radio" aria-checked="${d.method===id}" data-method="${id}"><span class="dot"></span><span class="col"><span class="b" style="font-size:16px">${nm}${tag?`<span class="tag">${tag}</span>`:''}</span><span class="cap muted">${h}</span></span></button>`).join('')}</div>
   ${d.method==='pot'||d.method==='account'?`<div style="display:flex;flex-direction:column;gap:12px"><span class="b">How often</span><div class="seg" role="group" aria-label="How often">${[['week','Weekly'],['fortnight','Fortnightly'],['month','Monthly']].map(([f,l])=>`<button data-freq="${f}" aria-pressed="${d.freq===f}">${l}</button>`).join('')}</div>
   <div class="stepper"><button data-amt="-1" aria-label="Save £1 less">−</button><div class="col" style="text-align:center;align-items:center" aria-live="polite"><label class="amtin"><span aria-hidden="true">£</span><input id="samt" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" aria-label="Amount each time" value="${amt}" style="width:${String(amt).length+.6}ch"></label><span class="cap muted">${PER[d.freq]}, ${d.freq==='month'?'on the 27th':d.freq==='week'?'every Friday':'every other Friday'}</span></div><button data-amt="1" aria-label="Save £1 more">+</button></div>
@@ -439,7 +447,7 @@ function savingSheet(){
   ${d.method==='paid'&&rem?`<div class="notice">${I(IC.tick,18,2.4)}<span>Saving this logs the last ${money(rem)} so the part shows as packed.</span></div>`:''}
   ${d.method!=='paid'?`<div style="display:flex;flex-direction:column;gap:8px"><label class="b" for="into">Saving into</label><input id="into" class="field" value="${esc(d.into)}" placeholder="Pot or account name"><span class="cap muted">Your own account. ${pt?esc(pt.name)+' sees':'Others see'} the name, never the balance.</span></div>
   ${d.method!=='adhoc'?`<label class="row" style="min-height:44px"><span class="col"><span class="b" style="font-size:16px">Check it went in</span><span class="cap muted">On payment day: “Did ${money(amt)} go in?” One tap to confirm.</span></span><input type="checkbox" class="switch" id="chk" ${d.checks?'checked':''}></label>`:''}`:''}
-  <div style="display:flex;flex-direction:column;gap:10px"><button class="btn" data-act="saveSaving" ${busy?'disabled':''}>Save</button><span class="cap muted row" style="justify-content:center;gap:6px">${I(IC.lock,14,2)} Bagsy never moves your money. You set this up in your bank.</span></div>${details}`}`);
+  <div style="display:flex;flex-direction:column;gap:10px"><button class="btn" data-act="saveSaving" ${busy?'disabled':''}>Save</button><span class="cap muted row" style="justify-content:center;gap:6px">${I(IC.lock,14,2)} Bagsy never moves your money. You set this up in your bank.</span></div>${logsBlock}${details}`}`);
 }
 function logSheet(){
   const t=trip(sheet.trip), d=sheet.draft, p=t.parts.find(x=>x.id===d.part);
@@ -525,6 +533,7 @@ document.addEventListener('click',async e=>{
   if(ds.apowner){ sheet.draft.owner=ds.apowner; renderLayer(); return; }
   if(ds.skind){ sheet.draft.kind=ds.skind; renderLayer(); return; }
   if(ds.snights){ sheet.draft.nights=Math.min(60,Math.max(1,sheet.draft.nights+(+ds.snights))); renderLayer(); return; }
+  if(ds.editlog){ sheet.editLog=ds.editlog; sheet.confirmLogDel=false; renderLayer(); setTimeout(()=>{ const x=document.getElementById('elamt'); if(x){ x.focus(); x.select(); } },50); return; }
   if(ds.amt){ const s=sheet, t=trip(s.trip), p=t.parts.find(x=>x.id===s.part); const cur=s.draft.amt||suggest(p,s.draft.freq); s.draft.amt=Math.max(1,cur+(+ds.amt)); renderLayer(); return; }
   if(ds.yes){ const c=dueChecks().find(x=>x.part===ds.yes&&x.due===ds.due); if(c) logSaving(c.trip,c.part,c.amt,c.due); return; }
   if(ds.notyet){ const c=dueChecks().find(x=>x.part===ds.notyet&&x.due===ds.due); if(!c) return; try{ await api.reply(c.trip,c.part,c.due,'notyet'); await reload(); showToast('No problem. We’ll ask again on Monday.', async()=>{ await api.deleteReply(c.part,c.due); await reload(); }); }catch(err){ fail(err); } return; }
@@ -592,6 +601,14 @@ document.addEventListener('click',async e=>{
       try{ await api.updatePart(p.id,{ name, cost:dc, due, deposit:dep, deposit_due:dep?(d.depDue||null):null, ...ownerFields(t,d.owner) }); sheet=null; await reload(); showToast('Part updated.'); }catch(err){ fail(err); } break; }
     case 'deletePart': if(!sheet.confirmDel){ sheet.confirmDel=true; sheet.open=true; renderLayer(); break; } try{ await api.deletePart(sheet.part); sheet=null; await reload(); showToast('Part deleted.'); }catch(err){ fail(err); } break;
     case 'doLog': { const v=+String(document.getElementById('lamt').value).replace(/[^\d.]/g,''); if(v>0) logSaving(sheet.trip,sheet.draft.part,Math.round(v*100)/100); else document.getElementById('lamt').focus(); break; }
+    case 'editPart': { sheet.open=true; renderLayer(); setTimeout(()=>{ const x=document.getElementById('pdet'); if(x) x.scrollIntoView({behavior:'smooth',block:'start'}); },50); } break;
+    case 'cancelLog': sheet.editLog=null; sheet.confirmLogDel=false; renderLayer(); break;
+    case 'saveLog': { const v=Math.round((+(document.getElementById('elamt')||{}).value||0)*100)/100; if(!(v>0)){ document.getElementById('elamt')?.focus(); break; }
+      const id=sheet.editLog; try{ await api.updateLog(id,{amount:v}); sheet.editLog=null; await reload(); showToast(`Changed to ${money(v)}.`); }catch(err){ fail(err); } } break;
+    case 'delLog': { if(!sheet.confirmLogDel){ sheet.confirmLogDel=true; renderLayer(); break; }
+      const t=trip(sheet.trip), l=t&&t.logs.find(x=>x.id===sheet.editLog); if(!l) break;
+      try{ await api.deleteLog(l.id); sheet.editLog=null; sheet.confirmLogDel=false; await reload();
+        showToast(`Deleted the ${money(+l.amount)} saving.`, async()=>{ await api.addLog({ trip_id:l.trip_id, part_id:l.part_id, amount:+l.amount, check_date:l.check_date||null }); await reload(); }); }catch(err){ fail(err); } } break;
     case 'undo': if(toast&&toast.undo){ const u=toast.undo; toast=null; renderLayer(); try{ await u(); }catch(err){ fail(err); } } break;
     case 'skip': endSplash(); break;
     case 'retry': loadErr=''; render(); reload(); break;
@@ -622,6 +639,7 @@ document.addEventListener('input',e=>{
   if(t.id==='start'&&plan&&t.value) plan.start=t.value;
   if(t.dataset.cost!==undefined&&plan){ plan.parts[+t.dataset.cost].cost=t.value.replace(/[^\d]/g,''); const ch=plan.parts.filter(p=>p.on), tot=ch.reduce((s,p)=>s+(+p.cost||0),0); const el=document.getElementById('planTotal'); if(el) el.textContent=money(tot); const w=document.getElementById('planWeek'); if(w) w.textContent=money(Math.ceil(tot/Math.max(1,weeksTo(plan.start))))+' a week'; const ok=ch.length&&ch.every(p=>+p.cost>0), b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!ok; const hn=document.getElementById('costHint'); if(hn) hn.style.display=ok?'none':''; }
   if(t.dataset.due!==undefined&&plan&&t.value) plan.parts[+t.dataset.due].due=t.value;
+  if(t.dataset.had!==undefined&&plan) plan.parts[+t.dataset.had].had=t.value.replace(/[^\d.]/g,'');
   if(t.dataset.dep!==undefined&&plan) plan.parts[+t.dataset.dep].dep=t.value.replace(/[^\d]/g,'');
   if(t.dataset.depdue!==undefined&&plan&&t.value) plan.parts[+t.dataset.depdue].depDue=t.value;
   if(t.id==='samt'&&sheet){ t.value=t.value.replace(/[^\d.]/g,''); t.style.width=(Math.max(1,t.value.length)+.6)+'ch'; }
@@ -648,6 +666,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&sheet&&sheet.type!=='onboard'){ sheet=null; renderLayer(); }
   if(e.key==='Enter'&&(e.target.id==='email'||e.target.id==='pw')) document.querySelector('[data-act=auth]')?.click();
   if(e.key==='Enter'&&e.target.id==='samt') e.target.blur();
+  if(e.key==='Enter'&&e.target.id==='elamt') document.querySelector('[data-act=saveLog]')?.click();
   if(e.key==='Enter'&&e.target.id==='joinCode') document.querySelector('[data-act=lookupCode]')?.click();
 });
 /* keep both phones in step: refresh when the app comes back to the front, and every 30 seconds while open */
@@ -691,3 +710,15 @@ new MutationObserver(topTint).observe(document.getElementById('view'),{childList
 topTint();
 
 document.addEventListener('focusin',e=>{ if(e.target.id==='samt') setTimeout(()=>e.target.select(),0); });
+
+// Haptics. Android: the Vibration API. iPhone (iOS 18+): Safari has no vibration API, but toggling a native
+// switch gives the system tick, so we click a hidden one. Only fires inside a tap, which is when we want it.
+const hapt=(()=>{ const l=document.createElement('label'); l.setAttribute('aria-hidden','true'); l.style.cssText='position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
+  l.innerHTML='<input type="checkbox" switch tabindex="-1">'; document.body.appendChild(l); return l; })();
+function buzz(kind){ try{ if(navigator.vibrate){ navigator.vibrate(kind==='success'?[12,60,24]:kind==='warn'?[30,40,30]:8); return; }
+  hapt.click(); if(kind==='success') setTimeout(()=>hapt.click(),110); }catch(e){} }
+document.addEventListener('click',e=>{ const b=e.target.closest('button,input[type=checkbox].switch'); if(!b||b.disabled) return;
+  const a=b.dataset.act;
+  if(a==='doLog'||a==='saveSaving'||a==='create'||a==='saveLog'||b.dataset.yes) buzz('success');
+  else if(a==='delLog'||a==='deletePart') buzz('warn');
+  else if(b.closest('.seg,.chips,.stepper,[role=radiogroup],.tabbar,nav')||b.matches('.switch,[data-lq],[data-editlog],[data-notyet]')) buzz('tap'); },true);
