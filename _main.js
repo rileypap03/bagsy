@@ -387,7 +387,7 @@ function renderLayer(){
   const ns=layer.querySelector('.sheet'); if(ns&&old&&oldType===ns.dataset.type){ ns.style.animation='none'; ns.parentElement.style.animation='none'; ns.scrollTop=st; }
 }
 function showSplash(){
-  setTheme('#E9BE4E');
+  document.documentElement.classList.add('app');
   const el=document.createElement('div'); el.className='splash'; el.id='splash';
   el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video>`;
   document.getElementById('phone').appendChild(el);
