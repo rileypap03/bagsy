@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='6bf7d6cd';
+window.BAGSY_VERSION='65496567';
 {
 /* ---------- location scenes ---------- */
 const SC = {sky:'#22408C',far:'#3456A8',far2:'#2C4C9E',mid:'#1F3578',near:'#16214A',cream:'#F4EAD3',shade:'#E0CFAD',brass:'#D9A441',yellow:'#FFC53D',terra:'#C8603F',peach:'#F2B48A',blue:'#A9BDEB',rose:'#E58F7B',green:'#2E6A58',green2:'#245446',glow:'#FFD27A',water:'#2A4A9C'};
@@ -427,7 +427,7 @@ function renderLayer(){
 }
 function showSplash(){
   const el=document.createElement('div'); el.className='splash'; el.id='splash';
-  el.innerHTML=`<video id="sv" src="splash.mp4" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video><button class="skip" data-act="skip">Skip</button>`;
+  el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video><button class="skip" data-act="skip">Skip</button>`;
   document.getElementById('phone').appendChild(el);
   const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash; v.onerror=()=>setTimeout(endSplash,800);
   const go=()=>v.play().catch(()=>setTimeout(endSplash,1200)); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) go(); },500); setTimeout(endSplash,7000);

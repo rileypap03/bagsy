@@ -307,7 +307,7 @@ function renderLayer(){
 }
 function showSplash(){
   const el=document.createElement('div'); el.className='splash'; el.id='splash';
-  el.innerHTML=`<video id="sv" src="splash.mp4" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video><button class="skip" data-act="skip">Skip</button>`;
+  el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video><button class="skip" data-act="skip">Skip</button>`;
   document.getElementById('phone').appendChild(el);
   const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash; v.onerror=()=>setTimeout(endSplash,800);
   const go=()=>v.play().catch(()=>setTimeout(endSplash,1200)); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) go(); },500); setTimeout(endSplash,7000);

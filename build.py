@@ -7,7 +7,7 @@ const flag = t => (t.place||'').trim().toLowerCase()==='lisbon'?`<svg class="fla
 app = '{\n' + r('_scenes.js') + stars_flag + r('_avatar.js') + r('_main.js') + '\n}\n'
 import glob
 h = hashlib.sha1((app + r('api.js') + r('_style.css') + r('_extra.css')).encode())
-for f in sorted(glob.glob(os.path.join(H, 'img', '*')) + glob.glob(os.path.join(H, 'icons', '*'))): h.update(open(f, 'rb').read())
+for f in sorted(glob.glob(os.path.join(H, 'img', '*')) + glob.glob(os.path.join(H, 'icons', '*')) + [os.path.join(H, 'splash.mp4')]): h.update(open(f, 'rb').read())
 ver = h.hexdigest()[:8]
 app = f"window.BAGSY_VERSION='{ver}';\n" + app
 open(os.path.join(H, 'app.js'), 'w', encoding='utf8').write(app)
