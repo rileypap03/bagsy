@@ -137,6 +137,13 @@ language sql security definer stable set search_path = public as $$
 $$;
 grant execute on function public.invite_preview(text) to authenticated;
 
+-- ---------- access for signed-in users ----------
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant execute on all functions in schema public to authenticated;
+alter default privileges in schema public grant select, insert, update, delete on tables to authenticated;
+alter default privileges in schema public grant execute on functions to authenticated;
+
 -- ---------- row level security ----------
 alter table public.profiles enable row level security;
 alter table public.trips enable row level security;
