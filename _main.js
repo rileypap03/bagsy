@@ -397,7 +397,7 @@ function showSplash(){
   const go=()=>v.play().catch(fallback); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) fallback(); },900); setTimeout(endSplash,7000);
 
 }
-function setTheme(c){ const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); if(innerWidth<520){ document.documentElement.style.background=c; document.body.style.background=c; } }
+function setTheme(c){ if(innerWidth<520){ document.documentElement.style.background=c; document.body.style.background=c; } }
 function clearTheme(){ const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content','#F1F3F2'); document.documentElement.style.background=''; document.body.style.background=''; document.documentElement.classList.add('app'); }
 function endSplash(){ if(splashSeen) return; splashSeen=true; clearTheme(); const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
 const sheetHead = (id,title,sub) => `<span class="grab" aria-hidden="true"></span><div class="row"><div class="col"><span id="${id}" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${title}</span>${sub?`<span class="cap muted">${sub}</span>`:''}</div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>`;
