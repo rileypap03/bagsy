@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='e5ec0553';
+window.BAGSY_VERSION='6bf7d6cd';
 {
 /* ---------- location scenes ---------- */
 const SC = {sky:'#22408C',far:'#3456A8',far2:'#2C4C9E',mid:'#1F3578',near:'#16214A',cream:'#F4EAD3',shade:'#E0CFAD',brass:'#D9A441',yellow:'#FFC53D',terra:'#C8603F',peach:'#F2B48A',blue:'#A9BDEB',rose:'#E58F7B',green:'#2E6A58',green2:'#245446',glow:'#FFD27A',water:'#2A4A9C'};
@@ -157,7 +157,7 @@ let A = ls.get('bagsy-cache', null);     // last loaded data, for a fast, offlin
 let user = null, booting = true, offline = false, busy = false, loadErr = '';
 let UI = { tab:'trips', screen:{name:'tabs'} };
 let plan=null, sheet=null, toast=null, toastTimer=null, auth={ mode:'in', email:'', err:'', sending:false };
-let splashSeen = ls.get('bagsy-splash', false);
+let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
 if(params.get('join')){ ls.set('bagsy-join', params.get('join').toUpperCase()); history.replaceState(null,'',location.pathname); }
@@ -422,12 +422,17 @@ function renderLayer(){
   let h='';
   if(sheet&&user&&A){ const f={saving:savingSheet,log:logSheet,avatar:avatarSheet,join:joinSheet,code:codeSheet,settings:settingsSheet,addPart:addPartSheet}[sheet.type]; if(f) h=f(); }
   if(toast) h+=`<div class="toast" role="status"><span style="flex:1">${toast.msg}</span>${toast.undo?'<button data-act="undo">Undo</button>':''}</div>`;
-  if(!splashSeen) h+=`<div class="splash" id="splash"><video id="sv" src="splash.mp4" autoplay muted playsinline aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video><button class="skip" data-act="skip">Skip</button></div>`;
   layer.innerHTML=h;
   const ns=layer.querySelector('.sheet'); if(ns&&old&&oldType===ns.dataset.type){ ns.style.animation='none'; ns.parentElement.style.animation='none'; ns.scrollTop=st; }
-  const v=document.getElementById('sv'); if(v){ v.onended=endSplash; v.onerror=()=>setTimeout(endSplash,800); setTimeout(()=>{ if(v.paused&&v.currentTime===0) v.play().catch(()=>endSplash()); },400); setTimeout(endSplash,6000); }
 }
-function endSplash(){ if(splashSeen) return; splashSeen=true; ls.set('bagsy-splash',true); renderLayer(); }
+function showSplash(){
+  const el=document.createElement('div'); el.className='splash'; el.id='splash';
+  el.innerHTML=`<video id="sv" src="splash.mp4" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video><button class="skip" data-act="skip">Skip</button>`;
+  document.getElementById('phone').appendChild(el);
+  const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash; v.onerror=()=>setTimeout(endSplash,800);
+  const go=()=>v.play().catch(()=>setTimeout(endSplash,1200)); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) go(); },500); setTimeout(endSplash,7000);
+}
+function endSplash(){ if(splashSeen) return; splashSeen=true; const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
 const sheetHead = (id,title,sub) => `<span class="grab" aria-hidden="true"></span><div class="row"><div class="col"><span id="${id}" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${title}</span>${sub?`<span class="cap muted">${sub}</span>`:''}</div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>`;
 const wrap = (type,id,inner) => `<div class="scrim" data-act="closeSheet"><div class="sheet" data-type="${type}" role="dialog" aria-modal="true" aria-labelledby="${id}" data-stop>${inner}</div></div>`;
 function savingSheet(){
@@ -651,6 +656,7 @@ setInterval(()=>{ if(document.visibilityState==='visible'&&user&&!sheet&&!plan) 
 window.addEventListener('online',reload);
 
 (async function boot(){
+  showSplash();
   render();
   try{ user = await api.session(); }catch(e){ user=null; }
   if(user && A && A.uid!==user.id) A=null;
