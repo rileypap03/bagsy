@@ -24,7 +24,7 @@ function avatarSVG(a,s){
   if(a.hairStyle==='curly') front=[[22,19,5],[28,15.5,5.5],[35,15,5.5],[41,18.5,5],[25,21,4],[38,21,4]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${hc}"/>`).join('');
   let face='';
   if(a.facial==='stubble') face=`<path d="M20.6 31 Q21 43.6 32 44.4 Q43 43.6 43.4 31 Q42 39 36.5 40 Q32 38.4 27.5 40 Q22 39 20.6 31 Z" fill="${hc}" opacity=".38"/>`;
-  if(a.facial==='beard') face=`<path d="M20 29.5 Q19.8 46.5 32 46.8 Q44.2 46.5 44 29.5 Q43 38.4 37.2 39.6 Q32 37.4 26.8 39.6 Q21 38.4 20 29.5 Z" fill="${hc}"/>`;
+  if(a.facial==='beard') face=`<path d="M20 29.5 Q19.8 46.8 32 47 Q44.2 46.8 44 29.5 Q43.6 35.6 38.6 35.4 Q35.4 34.2 32 34.9 Q28.6 34.2 25.4 35.4 Q20.4 35.6 20 29.5 Z" fill="${hc}"/>`;
   if(a.facial==='moustache') face=`<path d="M27.2 36 Q32 33.2 36.8 36 Q32 37.2 27.2 36 Z" fill="${hc}"/>`;
   const mouthCol=a.facial==='beard'?shade(sk,.7):'#7A3B2E';
   let gl='';
@@ -39,5 +39,5 @@ function avatarSVG(a,s){
   <path d="M24.6 25.6 Q27 24.4 29.4 25.4 M34.6 25.4 Q37 24.4 39.4 25.6" stroke="${brow}" stroke-width="1.4" fill="none" stroke-linecap="round"/>
   <circle cx="27" cy="29.6" r="1.35" fill="${ink}"/><circle cx="37" cy="29.6" r="1.35" fill="${ink}"/>
   <path d="M32 30.5 Q30.6 34.4 32.6 34.8" stroke="${skd}" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <path d="M28.8 37.4 Q32 39.8 35.2 37.4" stroke="${mouthCol}" stroke-width="1.4" fill="none" stroke-linecap="round"/>${gl}</g></svg>`;
+  ${a.facial==='beard'?`<path d="M28.6 37.6 Q32 40.6 35.4 37.6 Q32 38.8 28.6 37.6 Z" fill="#8B4A3C"/>`:`<path d="M28.8 37.4 Q32 39.8 35.2 37.4" stroke="${mouthCol}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`}${gl}</g></svg>`;
 }
