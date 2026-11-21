@@ -28,5 +28,5 @@ Supabase pauses free projects after a week with no activity. `.github/workflows/
 
 ## Limits for now
 
-- No "forgot password" yet. To reset someone, delete their user in Authentication → Users and they create the account again (their trips stay if you re-invite them).
+- No "forgot password" yet. If someone forgets theirs, an admin can send a reset from Authentication → Users; a proper reset screen is a next step.
 - No push notifications yet. Payment-day checks show in the Activity tab and as a badge on the app icon.
