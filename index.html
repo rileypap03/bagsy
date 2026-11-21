@@ -183,10 +183,13 @@ img.scene{position:absolute;left:0;bottom:0;width:100%;height:auto;display:block
 /* iOS date inputs ignore width:100% and overflow the card */
 input[type=date].field{display:block;min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left;line-height:45px}
 input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
+#topbar{position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top),1px);z-index:200;pointer-events:none;background:#F1F3F2}
+@media(min-width:520px){#topbar{display:none}}
 
 </style>
 </head>
 <body>
+<div id="topbar" aria-hidden="true"></div>
 <div class="phone" id="phone"><div class="scroll" id="view"></div><div id="chrome"></div><div id="layer"></div></div>
 <script src="config.js"></script>
 <script src="supabase.js"></script>
