@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='15251863';
+window.BAGSY_VERSION='db4d502b';
 {
 /* ---------- location scenes ---------- */
 const SC = {sky:'#22408C',far:'#3456A8',far2:'#2C4C9E',mid:'#1F3578',near:'#16214A',cream:'#F4EAD3',shade:'#E0CFAD',brass:'#D9A441',yellow:'#FFC53D',terra:'#C8603F',peach:'#F2B48A',blue:'#A9BDEB',rose:'#E58F7B',green:'#2E6A58',green2:'#245446',glow:'#FFD27A',water:'#2A4A9C'};
@@ -153,7 +153,7 @@ const ls = { get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JS
 let A = ls.get('bagsy-cache', null);     // last loaded data, for a fast, offline-friendly start
 let user = null, booting = true, offline = false, busy = false, loadErr = '';
 let UI = { tab:'trips', screen:{name:'tabs'} };
-let plan=null, sheet=null, toast=null, toastTimer=null, auth={ step:'email', email:'', err:'', sending:false };
+let plan=null, sheet=null, toast=null, toastTimer=null, auth={ mode:'in', email:'', err:'', sending:false };
 let splashSeen = ls.get('bagsy-splash', false);
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
@@ -250,19 +250,17 @@ function tabbar(){
 }
 const banner = () => (api.preview?`<div class="pv">Preview mode: everything is saved in this browser only.</div>`:'')+(offline?`<div class="pv off">You’re offline. Showing what was saved last time.</div>`:'');
 
-/* sign in with a 6-digit email code (works inside an installed app, unlike magic links) */
+/* sign in with email and password; new accounts are ready straight away (email confirmation is off in Supabase) */
 function signIn(){
-  const e=auth;
+  const e=auth, up=e.mode==='up';
   return `<div class="auth">${banner()}<div class="authtop"><img src="img/bagsy-black.svg" alt="Bagsy" style="height:56px"><p class="muted" style="margin:14px 0 0;font-size:16px">Save for a trip together.<br>Each of you bagsies your part.</p></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:14px">${e.step==='email'?`
-    <label class="b" for="email">Your email</label><input id="email" class="field" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${esc(e.email)}">
-    <button class="btn" data-act="sendCode" ${e.sending?'disabled':''}>${e.sending?'Sending…':'Send me a code'}</button>
-    <p class="cap muted" style="margin:0">We’ll email you a sign-in code. No password to remember.</p>`:`
-    <div class="col"><span class="b">Check your email</span><span class="cap muted">We sent a code to ${esc(e.email)}${api.preview?'. In preview mode it’s always <b>123456</b>.':''}</span></div>
-    <label class="b" for="code">Code</label><input id="code" class="field code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="••••••">
-    <button class="btn" data-act="verify" ${e.sending?'disabled':''}>${e.sending?'Checking…':'Sign in'}</button>
-    <button class="link" data-act="changeEmail" style="align-self:center">Use a different email</button>`}
-    ${e.err?`<p class="cap behind" role="alert" style="margin:0">${esc(e.err)}</p>`:''}</div></div>`;
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">
+    <div class="seg two" role="tablist"><button data-authmode="in" aria-pressed="${!up}">Sign in</button><button data-authmode="up" aria-pressed="${up}">Create account</button></div>
+    <label class="b" for="email">Email</label><input id="email" class="field" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${esc(e.email)}">
+    <label class="b" for="pw">Password</label><input id="pw" class="field" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'At least 8 characters':''}">
+    <button class="btn" data-act="auth" ${e.sending?'disabled':''}>${e.sending?(up?'Creating…':'Signing in…'):(up?'Create account':'Sign in')}</button>
+    ${e.err?`<p class="cap behind" role="alert" style="margin:0">${e.err}</p>`:''}
+    <p class="cap muted" style="margin:0">${up?'Use a password you’ll remember. Your password manager can save it.':'New here? Tap Create account.'}</p></div></div>`;
 }
 function onboarding(){
   const d = sheet&&sheet.type==='onboard' ? sheet.draft : (sheet={type:'onboard',draft:{...DEFAULT_AV},name:''}).draft;
@@ -351,7 +349,7 @@ function you(){
   ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,32,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
   ${standalone?'':`<h2>Put Bagsy on your home screen</h2><div class="card sm" style="display:flex;flex-direction:column;gap:6px">${ios?`<span>1. Open this page in <b>Safari</b>.</span><span>2. Tap the Share button, then <b>Add to Home Screen</b>.</span><span>3. Open Bagsy from your home screen and sign in once more.</span>`:`<span>Open your browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.</span>`}</div>`}
   <button class="btn sec" data-act="signOut" style="margin-top:12px">Sign out</button>
-  ${api.preview?`<h2>Preview tools</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><span class="cap muted">Pretend to be someone else to test the partner side. Sign out, then sign in with another email (code 123456).</span>${api._users().filter(u=>u.id!==user.id).map(u=>`<button class="btn s sec" data-switch="${u.id}">Switch to ${esc(u.name||u.email)}</button>`).join('')}<button class="btn s sec" data-act="wipe">Wipe preview data</button></div>`:''}
+  ${api.preview?`<h2>Preview tools</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><span class="cap muted">Pretend to be someone else to test the partner side. Sign out, then create another account with a different email.</span>${api._users().filter(u=>u.id!==user.id).map(u=>`<button class="btn s sec" data-switch="${u.id}">Switch to ${esc(u.name||u.email)}</button>`).join('')}<button class="btn s sec" data-act="wipe">Wipe preview data</button></div>`:''}
   <p class="demo">Bagsy ${window.BAGSY_VERSION||''}</p></div>`;
 }
 /* ---------- plan a trip ---------- */
@@ -551,13 +549,21 @@ document.addEventListener('click',async e=>{
   if(ds.toggle){ const p=plan.parts[+ds.toggle]; p.on=!p.on; render(); return; }
   if(ds.owner){ plan.parts[+ds.owner].owner=ds.w; render(); return; }
   if(ds.avk){ sheet.draft[ds.avk]=ds.avv; if(sheet.type==='onboard') render(); else renderLayer(); return; }
+  if(ds.authmode){ auth.mode=ds.authmode; auth.err=''; const v=document.getElementById('email'); if(v) auth.email=v.value; render(); return; }
   if(ds.switch){ api._switch(ds.switch); user=await api.session(); A=null; sheet=null; UI={tab:'trips',screen:{name:'tabs'}}; render(); reload(); return; }
   switch(ds.act){
-    case 'sendCode': { const v=(document.getElementById('email').value||'').trim(); if(!/^\S+@\S+\.\S+$/.test(v)){ auth.err='Enter your email address.'; render(); return; } auth.email=v; auth.err=''; auth.sending=true; render();
-      try{ await api.sendCode(v); auth.step='code'; }catch(err){ auth.err=friendly(err); } auth.sending=false; render(); document.getElementById('code')?.focus(); break; }
-    case 'verify': { const c=(document.getElementById('code').value||'').replace(/\D/g,''); if(c.length<6){ auth.err='Enter the code from the email.'; render(); return; } auth.sending=true; auth.err=''; render();
-      try{ user=await api.verify(auth.email,c); auth={step:'email',email:'',err:'',sending:false}; A=null; render(); await reload(); }catch(err){ auth.sending=false; auth.err=/expired|invalid/i.test(String(err.message))?'That code didn’t work or has expired. Try again or send a new one.':friendly(err); render(); } break; }
-    case 'changeEmail': auth={step:'email',email:auth.email,err:'',sending:false}; render(); break;
+    case 'auth': { const em=(document.getElementById('email').value||'').trim(), pw=document.getElementById('pw').value||'', up=auth.mode==='up'; auth.email=em;
+      if(!/^\S+@\S+\.\S+$/.test(em)){ auth.err='Enter your email address.'; render(); return; }
+      if(pw.length<(up?8:1)){ auth.err=up?'Make your password at least 8 characters.':'Enter your password.'; render(); return; }
+      auth.sending=true; auth.err=''; render();
+      try{ user = up ? await api.signUp(em,pw) : await api.signIn(em,pw); auth={mode:'in',email:'',err:'',sending:false}; A=null; render(); await reload(); }
+      catch(err){ const m=String(err&&err.message||err); auth.sending=false;
+        auth.err = /CONFIRM_ON|not confirmed/i.test(m) ? 'Your account was made, but Supabase still has “Confirm email” switched on. Turn it off (Authentication → Sign In / Providers → Email), then sign in.'
+          : /already registered|already exists/i.test(m) ? 'There’s already an account with that email. Tap Sign in.'
+          : /invalid login/i.test(m) ? 'That email and password don’t match. Check them, or tap Create account if you’re new.'
+          : /weak|pwned|leaked/i.test(m) ? 'That password is too easy to guess. Try a longer one.'
+          : esc(friendly(err));
+        render(); } break; }
     case 'finishOnboard': { const nm=(document.getElementById('nm').value||'').trim(); if(!nm){ document.getElementById('nm').focus(); return; } try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); sheet=null; await reload(); }catch(err){ fail(err); } break; }
     case 'editMe': sheet={type:'avatar',name:me().name,draft:{...DEFAULT_AV,...(me().avatar||{})}}; renderLayer(); break;
     case 'saveMe': { const nm=(document.getElementById('nm2').value||'').trim()||me().name; busy=true; renderLayer(); try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); busy=false; sheet=null; await reload(); showToast('Saved. Your trip partners see the new look.'); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
@@ -626,8 +632,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('toggle',e=>{ if(e.target.id==='pdet'&&sheet) sheet.open=e.target.open; },true);
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&sheet&&sheet.type!=='onboard'){ sheet=null; renderLayer(); }
-  if(e.key==='Enter'&&e.target.id==='email') document.querySelector('[data-act=sendCode]')?.click();
-  if(e.key==='Enter'&&e.target.id==='code') document.querySelector('[data-act=verify]')?.click();
+  if(e.key==='Enter'&&(e.target.id==='email'||e.target.id==='pw')) document.querySelector('[data-act=auth]')?.click();
   if(e.key==='Enter'&&e.target.id==='joinCode') document.querySelector('[data-act=lookupCode]')?.click();
 });
 /* keep both phones in step: refresh when the app comes back to the front, and every 30 seconds while open */

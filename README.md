@@ -8,8 +8,7 @@ An installable web app (PWA). Hosted on GitHub Pages, data in Supabase.
 
 1. **Supabase project**: supabase.com → New project (free). Pick a strong database password and a region near you (London).
 2. **Database**: in the project, SQL Editor → New query → paste all of `schema.sql` → Run.
-3. **Sign-in emails**: Authentication → Emails → Templates. In both **Magic Link** and **Confirm signup**, replace the body with:
-   `<h2>Your Bagsy code</h2><p>Enter this code in the app: <strong>{{ .Token }}</strong></p>`
+3. **Sign-in**: Authentication → Sign In / Providers → Email → turn **Confirm email** off → Save. People sign in with email and password, so Bagsy sends no emails.
 4. **Website address**: Authentication → URL Configuration → Site URL: `https://<your-github-name>.github.io/bagsy/`
 5. **Keys**: Project Settings → API. Copy the Project URL and the `anon` `public` key into `config.js`. (The anon key is meant to be public. The security rules in `schema.sql` stop anyone reading trips they're not in.)
 6. **Hosting**: GitHub repo → Settings → Pages → Source: Deploy from a branch → `main` / root → Save. The app appears at `https://<your-github-name>.github.io/bagsy/` a minute later.
@@ -29,5 +28,5 @@ Supabase pauses free projects after a week with no activity. `.github/workflows/
 
 ## Limits for now
 
-- Supabase's built-in email sender only sends a few emails an hour. Fine for two people; for more, connect your own email service in Authentication → SMTP.
+- No "forgot password" yet. To reset someone, delete their user in Authentication → Users and they create the account again (their trips stay if you re-invite them).
 - No push notifications yet. Payment-day checks show in the Activity tab and as a badge on the app icon.

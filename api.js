@@ -10,8 +10,8 @@ function realApi(){
   return {
     preview:false,
     async session(){ const { data } = await sb.auth.getSession(); return data.session ? data.session.user : null; },
-    async sendCode(email){ ok(await sb.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } })); },
-    async verify(email, token){ const d = ok(await sb.auth.verifyOtp({ email, token, type:'email' })); return d.user; },
+    async signIn(email, password){ const d = ok(await sb.auth.signInWithPassword({ email, password })); return d.user; },
+    async signUp(email, password){ const d = ok(await sb.auth.signUp({ email, password })); if(!d.session) throw new Error('CONFIRM_ON'); return d.user; },
     async signOut(){ await sb.auth.signOut(); },
     async load(uid){
       const [profiles, trips, members, parts, logs, replies, activity] = await Promise.all([
@@ -59,14 +59,9 @@ function previewApi(){
   return {
     preview:true,
     async session(){ return wait(me() ? { id:me(), email:(db.users.find(u=>u.id===me())||{}).email } : null); },
-    async sendCode(email){ await wait(); db.pendingEmail = email.toLowerCase(); save(); },
-    async verify(email, token){
-      await wait();
-      if(String(token).trim() !== '123456') throw new Error('That code isn’t right. In preview mode the code is always 123456.');
-      email = email.toLowerCase(); let u = db.users.find(x=>x.email===email);
-      if(!u){ u = { id:uuid(), email }; db.users.push(u); db.profiles.push({ id:u.id, name:'', avatar:null, created_at:now() }); }
-      db.session = u.id; save(); return { id:u.id, email };
-    },
+    async signUp(email, password){ await wait(); email=email.toLowerCase(); if(db.users.find(x=>x.email===email)) throw new Error('User already registered');
+      const u={ id:uuid(), email, password }; db.users.push(u); db.profiles.push({ id:u.id, name:'', avatar:null, created_at:now() }); db.session=u.id; save(); return { id:u.id, email }; },
+    async signIn(email, password){ await wait(); email=email.toLowerCase(); const u=db.users.find(x=>x.email===email&&(x.password||'')===password); if(!u) throw new Error('Invalid login credentials'); db.session=u.id; save(); return { id:u.id, email }; },
     async signOut(){ db.session = null; save(); },
     async load(){
       need(); await wait();

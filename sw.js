@@ -1,5 +1,5 @@
 /* Bagsy service worker: keeps the app itself available offline. Your trip data always comes fresh from the database. */
-const CACHE = 'bagsy-15251863';
+const CACHE = 'bagsy-db4d502b';
 const SHELL = ['./','index.html','app.js','api.js','config.js','supabase.js','manifest.webmanifest','splash.mp4',
   'img/plane.png','img/key.png','img/tickets.png','img/wallet.png','img/case.png','img/bagsy-black.svg',
   'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
