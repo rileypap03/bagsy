@@ -92,3 +92,10 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 #reveal .btn{width:100%;max-width:340px;margin-top:auto}
 #reveal::before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.0),rgba(255,255,255,.55) 30%,rgba(255,255,255,.55) 55%,rgba(255,255,255,0) 75%);z-index:1;pointer-events:none}
 #reveal .rv-in{z-index:2}
+
+/* person card: owner header clearly above its parts */
+.ownhd{display:flex;align-items:center;gap:12px;padding-bottom:14px;margin-bottom:4px;border-bottom:1px solid var(--line-subtle)}
+.ownnm{font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.ownpct{font-size:20px;font-weight:700;letter-spacing:-.01em;flex:none}
+.prow .ico{width:40px;height:40px}.prow .ico img{width:42px;height:42px}
+.pnm{font-size:15px;font-weight:500}.pam{font-size:15px;font-weight:600}
