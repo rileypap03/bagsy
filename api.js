@@ -33,7 +33,10 @@ function realApi(){
         sb.from('parts').select('*').order('position'), sb.from('logs').select('*').order('created_at'),
         sb.from('check_replies').select('*'), sb.from('activity').select('*').order('created_at',{ascending:false}).limit(200)
       ].map(p=>p.then(ok)));
-      return { profiles, trips, members, parts, logs, replies, activity };
+      // surprises: tolerate the table not existing yet, so the app still loads before the SQL update is run
+      const soft = q => q.then(r=>r.error?[]:(r.data||[]), ()=>[]);
+      const [surprises, forMe] = await Promise.all([ soft(sb.from('surprises').select('*')), soft(sb.rpc('my_surprises')) ]);
+      return { profiles, trips, members, parts, logs, replies, activity, surprises, forMe };
     },
     async saveProfile(uid, fields){ ok(await sb.from('profiles').upsert({ id:uid, ...fields })); },
     async createTrip(trip, parts){
@@ -49,6 +52,7 @@ function realApi(){
     async deletePart(id){ ok(await sb.from('parts').delete().eq('id',id)); },
     async addLog(row){ return ok(await sb.from('logs').insert(row).select().single()); },
     async deleteLog(id){ ok(await sb.from('logs').delete().eq('id',id)); },
+    async setSurprise(trip_id, f){ ok(await sb.from('surprises').upsert({ trip_id, ...f })); },
     async updateLog(id, f){ ok(await sb.from('logs').update(f).eq('id',id)); },
     async addActivity(trip_id, kind, data){ return ok(await sb.from('activity').insert({ trip_id, kind, data }).select().single()); },
     async deleteActivity(id){ ok(await sb.from('activity').delete().eq('id',id)); },
@@ -66,6 +70,7 @@ function previewApi(){
   const now = () => new Date().toISOString();
   let db; try{ db = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   if(!db) db = { users:[], session:null, profiles:[], trips:[], trip_members:[], parts:[], logs:[], check_replies:[], activity:[] };
+  db.surprises = db.surprises || [];
   const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){} };
   const me = () => db.session;
   const memberOf = t => db.trip_members.some(m=>m.trip_id===t && m.user_id===me());
@@ -93,7 +98,10 @@ function previewApi(){
         trips: db.trips.filter(t=>tripIds.has(t.id)).sort((a,b)=>a.start_date<b.start_date?-1:1),
         members: db.trip_members.filter(inTrip), parts: db.parts.filter(inTrip).sort((a,b)=>a.position-b.position),
         logs: db.logs.filter(inTrip), replies: db.check_replies.filter(inTrip),
-        activity: db.activity.filter(inTrip).sort((a,b)=>a.created_at<b.created_at?1:-1)
+        activity: db.activity.filter(inTrip).sort((a,b)=>a.created_at<b.created_at?1:-1),
+        surprises: db.surprises.filter(x=>x.from_user===me()),
+        forMe: db.surprises.filter(x=>x.to_user===me()&&(x.revealed_at||x.save_date_at)).map(x=>{ const t=db.trips.find(y=>y.id===x.trip_id)||{}, pf=db.profiles.find(y=>y.id===x.from_user)||{};
+          return { trip_id:x.trip_id, from_user:x.from_user, from_name:pf.name, place:x.revealed_at?t.place:null, kind:x.revealed_at?t.kind:null, trip_type:t.trip_type||'holiday', start_date:t.start_date, nights:t.nights, hint:x.hint||'', save_date_at:x.save_date_at||null, revealed_at:x.revealed_at||null }; })
       }));
     },
     async saveProfile(uid, f){ need(); await wait(); const p = db.profiles.find(x=>x.id===uid); Object.assign(p, f); save(); },
@@ -113,6 +121,7 @@ function previewApi(){
     async deletePart(id){ need(); await wait(); db.parts=db.parts.filter(p=>p.id!==id); db.logs=db.logs.filter(l=>l.part_id!==id); save(); },
     async addLog(row){ need(); await wait(); if(!memberOf(row.trip_id)) throw new Error('Not allowed'); const r={ id:uuid(), user_id:me(), check_date:null, created_at:now(), ...row }; db.logs.push(r); save(); return r; },
     async deleteLog(id){ need(); await wait(); db.logs=db.logs.filter(l=>l.id!==id); save(); },
+    async setSurprise(trip_id, f){ need(); await wait(); let r=db.surprises.find(x=>x.trip_id===trip_id); if(!r){ r={ trip_id, from_user:me(), to_user:null, hint:'', save_date_at:null, revealed_at:null, created_at:now() }; db.surprises.push(r); } Object.assign(r,f); save(); },
     async updateLog(id, f){ need(); await wait(); const l=db.logs.find(x=>x.id===id); if(l) Object.assign(l,f); save(); },
     async addActivity(trip_id, kind, data){ need(); await wait(); const r={ id:uuid(), trip_id, user_id:me(), kind, data, created_at:now() }; db.activity.push(r); save(); return r; },
     async deleteActivity(id){ need(); await wait(); db.activity=db.activity.filter(a=>a.id!==id); save(); },

@@ -156,12 +156,29 @@ async function onActivity(rec: any) {
   return { sent };
 }
 
+/* ---------- 1b. a surprise: save-the-date or the reveal ---------- */
+async function onSurprise(ev: string, s: any) {
+  if (!s || !s.to_user) return { skipped: true };
+  const [t] = await db(`trips?id=eq.${s.trip_id}&select=id,start_date,nights`);
+  if (!t) return { skipped: 'no trip' };
+  const [from] = await db(`profiles?id=eq.${s.from_user}&select=name`);
+  const who = (from && from.name) || 'Someone';
+  const start = D(t.start_date), end = addDays(start, t.nights);
+  const dates = t.nights ? `${fmt(start, false)}–${fmt(end, false)}` : fmt(start);
+  const hint = s.hint ? ' ' + s.hint : '';
+  // the place never goes in a notification: the reveal happens in the app
+  const msg = ev === 'reveal'
+    ? { title: `${who} has bagsied you a trip ✨`, body: 'Tap to open your surprise.', url: APP + '?surprise=' + t.id, tag: 'surprise-' + t.id }
+    : { title: `Keep ${dates} free 👀`, body: `${who} is planning something.${hint}`, url: APP, tag: 'savedate-' + t.id };
+  return { sent: await toPerson(s.to_user, 'partner', msg) };
+}
+
 /* ---------- 2. the daily round ---------- */
 async function daily() {
   const today = londonToday(), monday = today.getUTCDay() === 1, sunday = today.getUTCDay() === 0;
   const parts: any[] = await db('parts?owner=not.is.null&select=id,trip_id,name,cost,owner,due,method,freq,amount,into_label,checks,schedule_from,deposit,deposit_due,created_at');
   if (!parts.length) return { sent: 0 };
-  const trips: any[] = await db(`trips?select=id,place,start_date,nights`);
+  const trips: any[] = await db(`trips?select=id,place,start_date,nights,surprise`);
   const T: Record<string, any> = Object.fromEntries(trips.map(t => [t.id, t]));
   const logs: any[] = await db('logs?select=part_id,amount');
   const saved: Record<string, number> = {}; for (const l of logs) saved[l.part_id] = (saved[l.part_id] || 0) + (+l.amount);
@@ -175,13 +192,15 @@ async function daily() {
     const tripEnd = addDays(D(t.start_date), t.nights); if (tripEnd < today) continue;
     const cost = +p.cost, sv = saved[p.id] || 0, rem = cost - sv, amt = +p.amount; if (rem <= 0) continue;
     const url = APP + '?trip=' + t.id;
+    // surprise trips: never put the place on a lock screen someone else might glance at
+    const place = t.surprise ? 'your surprise' : t.place;
 
     // payday: "Did £x go in?"
     if ((p.method === 'pot' || p.method === 'account') && p.checks && amt > 0) {
       let d = firstPay(p.freq, D(p.schedule_from)), last: Date | null = null; while (d <= today) { last = d; d = stepPay(p.freq, d); }
       if (last && (today.getTime() - last.getTime()) / DAY <= 21) {
         const due = iso(last), r = replies.find(x => x.part_id === p.id && x.due_date === due);
-        const msg = { title: `Did ${money(Math.min(amt, rem))} go in?`, body: `${p.name} · ${t.place}${p.into_label ? ' · ' + p.into_label : ''}. Tap to confirm.`, url: APP + '?tab=activity', tag: 'check-' + p.id };
+        const msg = { title: `Did ${money(Math.min(amt, rem))} go in?`, body: `${p.name} · ${place}${p.into_label ? ' · ' + p.into_label : ''}. Tap to confirm.`, url: APP + '?tab=activity', tag: 'check-' + p.id };
         if (!r && due === iso(today) && await once(`check:${p.id}:${due}`)) sent += await toPerson(p.owner, 'checks', msg, P);
         if (r && r.reply === 'notyet' && monday && await once(`again:${p.id}:${due}:${iso(today)}`)) sent += await toPerson(p.owner, 'checks', msg, P);
       }
@@ -192,7 +211,7 @@ async function daily() {
     if (dep > 0 && p.deposit_due && sv < dep) {
       const days = Math.round((D(p.deposit_due).getTime() - today.getTime()) / DAY);
       if ((days === 7 || days === 1) && await once(`deposit:${p.id}:${p.deposit_due}:${days}`))
-        sent += await toPerson(p.owner, 'behind', { title: `${p.name} deposit due ${days === 1 ? 'tomorrow' : fmt(D(p.deposit_due))}`, body: `${money(dep - sv)} still to save for the ${money(dep)} deposit · ${t.place}`, url, tag: 'dep-' + p.id }, P);
+        sent += await toPerson(p.owner, 'behind', { title: `${p.name} deposit due ${days === 1 ? 'tomorrow' : fmt(D(p.deposit_due))}`, body: `${money(dep - sv)} still to save for the ${money(dep)} deposit · ${place}`, url, tag: 'dep-' + p.id }, P);
     }
 
     // running behind: Sunday evening round-up, at most once a fortnight per part
@@ -202,7 +221,7 @@ async function daily() {
       if (p.method === 'adhoc') { const st = D(p.created_at), span = Math.max(1, (D(p.due).getTime() - st.getTime()) / (7 * DAY)), el = (today.getTime() - st.getTime()) / (7 * DAY); behind = el >= 2 && sv < cost * Math.min(1, el / span) - cost * .05; pace = Math.ceil(rem / Math.max(1, weeksTo(p.due, today))); }
       const fortnight = Math.floor(today.getTime() / (14 * DAY));
       if (behind && await once(`behind:${p.id}:${fortnight}`))
-        sent += await toPerson(p.owner, 'behind', { title: `${p.name} is behind`, body: `${money(pace)} a week from now gets it there by ${fmt(D(p.due), false)} · ${t.place}`, url, tag: 'behind-' + p.id }, P);
+        sent += await toPerson(p.owner, 'behind', { title: `${p.name} is behind`, body: `${money(pace)} a week from now gets it there by ${fmt(D(p.due), false)} · ${place}`, url, tag: 'behind-' + p.id }, P);
     }
   }
   return { sent };
@@ -235,6 +254,7 @@ export async function handler(req: Request) {
       return json(await work);
     }
     if (body.type === 'daily') return json(await daily());
+    if (body.type === 'surprise') return json(await onSurprise(body.event, body.record));
     return json({ error: 'Unknown request' }, 400);
   } catch (e) { console.log(String(e)); return json({ error: String(e) }, 500); }
 }

@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='aaad6a5a';
+window.BAGSY_VERSION='3f9c4838';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -45,13 +45,14 @@ const DAY = 864e5;
 const now0 = new Date(); let TODAY = new Date(Date.UTC(now0.getFullYear(), now0.getMonth(), now0.getDate()));
 const BASE_PARTS = [['Flights',''],['Stay',''],['Package holiday',''],['Days out',''],['Spending money','']];
 /* how many days before the trip each part is usually needed, who takes it by default, and whether it starts switched on */
-const PART_DEF = {'Flights':[150,'me',true],'Stay':[100,'partner',true],'Package holiday':[120,'split',false],'Days out':[40,'me',false],'Spending money':[2,'partner',true]};
+const SHORT_PARTS = [['Travel',''],['Stay',''],['Dinner',''],['Tickets',''],['Spending money','']];
+const PART_DEF = {'Travel':[21,'me',true],'Dinner':[3,'split',true],'Tickets':[7,'me',false],'Flights':[150,'me',true],'Stay':[100,'partner',true],'Package holiday':[120,'split',false],'Days out':[40,'me',false],'Spending money':[2,'partner',true]};
 const partDue = (name,start) => { const d=iso(addDays(D(start),-((PART_DEF[name]||[14])[0]))); return d<iso(TODAY)?iso(addDays(TODAY,7)):d; };
 const PLACES = ['Lisbon','Barcelona','Copenhagen','Rome'];
 const SPLIT_COLS = ['var(--brass)','var(--brass-deep)','var(--brass-light)','var(--brass-darkest)'];
 const I = (d,s=20,w=2.2)=>`<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
 const IC = {pen:'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',back:'M15 18l-6-6 6-6',plus:'M12 5v14M5 12h14',close:'M6 6l12 12M18 6L6 18',warn:'M12 8v5M12 16.5v.01M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z',tick:'M5 12.5l4.5 4.5L19 7.5',chev:'M9 6l6 6-6 6',lock:'M5 11h14v10H5zM8 11V8a4 4 0 0 1 8 0v3',refresh:'M21 12a9 9 0 1 1-3-6.7M21 4v5h-5',trips:'M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM9 11v6M15 11v6',act:'M3 12h4l3-7 4 14 3-7h4',you:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6',share:'M12 3v12M7 8l5-5 5 5M5 14v6h14v-6',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',mail:'M3 6h18v12H3zM3 7l9 6 9-6',home:'M3 11l9-7 9 7M5 10v10h14V10'};
-const PART_IMG = {Flights:'plane',Stay:'bed','Package holiday':'package','Days out':'tickets','Spending money':'wallet'};
+const PART_IMG = {Travel:'plane',Tickets:'tickets',Dinner:'wallet',Flights:'plane',Stay:'bed','Package holiday':'package','Days out':'tickets','Spending money':'wallet'};
 const partIcon = n => `<span class="ico img"><img src="img/${PART_IMG[n]||'case'}.png" alt="" aria-hidden="true"></span>`;
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => { n=+n||0; return '£'+(Number.isInteger(Math.round(n*100)/100)?Math.round(n).toLocaleString('en-GB'):n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})); };
@@ -81,6 +82,7 @@ let plan=null, sheet=null, toast=null, toastTimer=null, auth={ mode:'in', email:
 let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
+if(params.get('surprise')) ls.set('bagsy-open-surprise', params.get('surprise'));
 if(params.get('join')) ls.set('bagsy-join', params.get('join').toUpperCase());
 let navQ = params.get('trip')||params.get('tab') ? { trip:params.get('trip'), tab:params.get('tab') } : null;   // opened from a notification
 if(location.search && !/type=recovery/.test(location.search)) history.replaceState(null,'',location.pathname+location.hash);
@@ -98,9 +100,9 @@ function shape(raw, uid){
       id:p.id, name:p.name, cost:+p.cost, owner:p.owner, forPartner:p.for_partner, due:p.due, method:p.method, freq:p.freq, amt:+p.amount,
       into:p.into_label||'', checks:p.checks, scheduleFrom:p.schedule_from, created:p.created_at, deposit:+p.deposit||0, depositDue:p.deposit_due||null,
       saved: logs.filter(l=>l.part_id===p.id).reduce((s,l)=>s+(+l.amount),0) }));
-    return { id:t.id, place:t.place, kind:t.kind, start:t.start_date, nights:t.nights, partnerName:t.partner_name||'', code:t.invite_code, createdBy:t.created_by, members, parts, logs };
+    return { id:t.id, place:t.place, kind:t.kind, start:t.start_date, nights:t.nights, partnerName:t.partner_name||'', code:t.invite_code, createdBy:t.created_by, members, parts, logs, type:t.trip_type||'holiday', surprise:!!t.surprise, sur:(raw.surprises||[]).find(x=>x.trip_id===t.id)||null };
   });
-  return { uid, profiles, trips, activity:raw.activity, replies:raw.replies, at:Date.now() };
+  return { uid, profiles, trips, activity:raw.activity, replies:raw.replies, forMe:raw.forMe||[], at:Date.now() };
 }
 async function reload(){
   if(!user) return;
@@ -180,6 +182,7 @@ function render(){
     const sc=UI.screen;
     if(sc.name==='plan'&&!plan) UI.screen={name:'tabs'};
     if(UI.screen.name==='trip'&&!trip(UI.screen.id)) UI.screen={name:'tabs'};
+    if(UI.screen.name==='tabs'&&UI.tab==='trips') setTimeout(checkReveal,0);
     if(UI.screen.name==='tabs'){ view.innerHTML = UI.tab==='trips'?trips():UI.tab==='activity'?activity():you(); chrome=tabbar(); }
     else if(UI.screen.name==='trip') view.innerHTML = tripView(trip(UI.screen.id));
     else if(UI.screen.name==='plan'){ const r=planView(); view.innerHTML=r.main; chrome=`<div class="bottom">${r.bottom}</div>`; }
@@ -233,11 +236,13 @@ function onboarding(){
 function trips(){
   const live=A.trips.filter(t=>tripEnd(t)>=TODAY), past=A.trips.filter(t=>tripEnd(t)<TODAY), checks=dueChecks();
   let h=`<div class="pad">${banner()}<div class="top"><h1>Trips</h1><button class="round" data-act="plan" aria-label="Plan a trip">${I(IC.plus,18,2.4)}</button></div>`;
+  h+=forMeCards();
   if(!live.length) h+=`<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h1 style="font-size:24px">Where to next?</h1><p class="muted" style="margin:0">Plan a trip, split it into parts, and invite the person you’re going with.</p><button class="btn" data-act="plan">Plan a trip</button></div>`;
   else { h+=`<h2>Coming up</h2>`; for(const t of live){ const tot=total(t),sv=savedOf(t),pct=tot?Math.round(sv/tot*100):0, pt=partnerOf(t);
     h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div class="scenehead" style="${sceneBg(t)}">${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:10px;top:6px;display:flex;gap:2px">${[user.id].concat(pt?[pt.id]:[]).map(p=>av(p,44,t)).join('')}</span></div>
     <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px"><div class="row" style="align-items:flex-end"><div class="col"><span class="cap muted">${tripDates(t)} · ${weeksTo(t.start)} weeks to go</span><span style="font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.03em">${money(sv)} <span class="muted" style="font-size:15px;font-weight:500;letter-spacing:0">of ${money(tot)}</span></span></div><span class="sm b ok" style="padding-bottom:4px">${pct}% covered</span></div>
     <div style="display:flex;gap:3px;height:6px">${t.parts.map(p=>`<span class="bar" style="flex:${p.cost||1}"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span>`).join('')}</div>
+    ${t.surprise?`<span class="notice" style="padding:10px 12px;align-items:center">🎁 <span class="b" style="color:var(--ink)">Surprise${t.sur&&t.sur.to_user?' for '+esc(nameOf(t,t.sur.to_user)):''}</span> ${t.sur&&t.sur.revealed_at?'Revealed':t.sur&&t.sur.save_date_at?'Save the date sent':'Still a secret'}</span>`:''}
     ${pt&&!pt.joined?`<span class="notice" style="padding:10px 12px;align-items:center"><span class="b" style="color:var(--ink)">Invite ${esc(pt.name)}</span> They haven’t joined yet</span>`:''}
     ${checks.filter(c=>c.trip===t.id).map(c=>`<span class="notice" style="padding:10px 12px;align-items:center"><span class="b" style="color:var(--ink)">Did ${money(c.amt)} go in?</span> ${esc((t.parts.find(p=>p.id===c.part)||{}).name)}</span>`).join('')}</div></button>`; } }
   h+=`${live.length?`<button class="dash" data-act="plan">${I(IC.plus,16,2.4)} Plan another trip</button>`:''}<button class="link" data-act="enterCode" style="align-self:center">Got an invite code?</button>`;
@@ -254,6 +259,7 @@ function tripView(t){
   <div class="amt">${money(sv)}</div><div style="margin-top:8px;color:var(--on-mast-muted)"><b style="color:var(--ok-mast)">${pct}% covered</b> of ${money(tot)} · ${weeksTo(t.start)} weeks to go</div>
   <div class="split" style="width:280px;margin-top:16px">${t.parts.map(p=>`<span style="flex:${p.cost||1}"><i style="width:${p.cost?Math.min(100,p.saved/p.cost*100):0}%"></i></span>`).join('')}</div>
   <div class="row sm" style="gap:6px;margin-top:14px;color:var(--on-mast-muted)">${I(IC.refresh,15,2.4).replace('currentColor','var(--ok-mast)')}${nxt}</div></div></div><div class="pad" style="padding-top:12px">${banner()}`;
+  if(t.surprise) h+=surpriseCard(t);
   if(pt&&!pt.joined) h+=`<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${av(pt.id,44,t)}<div class="col"><span class="b" style="font-size:16px">Invite ${esc(pt.name)}</span><span class="cap muted">Send the link. They sign in with their email and the parts you set aside become theirs.</span></div></div><div class="codebox"><span class="cap muted">Invite code</span><span class="code-big">${esc(t.code)}</span></div><button class="btn" data-act="share" data-trip="${t.id}">${I(IC.share,18,2.2)} Share invite link</button></div>`;
   const owners = people.concat(t.parts.some(p=>!ownerKey(t,p))?[null]:[]);
   for(const who of owners){
@@ -362,15 +368,19 @@ function planView(){
   const pn = P.partnerName.trim()||'them';
   if(step===1){
     const kind = sceneKind({place:P.place,kind:P.kind}), preset = false;
-    body=`<div style="padding:4px 8px 0"><h1>Where are you going?</h1><p class="muted" style="margin:6px 0 0">Plan it now. You’ll invite the other person at the end.</p></div>
+    const short=P.type==='short', ideas=short?dateIdeas():[], co=coMembers();
+    body=`<div style="padding:4px 8px 0"><h1>${P.surprise?'Where are you taking them?':'Where are you going?'}</h1><p class="muted" style="margin:6px 0 0">${P.surprise?'Plan it in secret. They only see it when you’re ready.':'Plan it now. You’ll invite the other person at the end.'}</p></div>
+    <div class="seg" role="group" aria-label="Kind of trip">${[['holiday','Holiday'],['short','Short break']].map(([k,l])=>`<button data-ttype="${k}" aria-pressed="${(P.type||'holiday')===k}">${l}</button>`).join('')}</div>
     <div class="card" style="display:flex;flex-direction:column;gap:14px"><label class="b" for="place">Where</label><input id="place" class="field" value="${esc(P.place)}" placeholder="A city or somewhere warm" autocomplete="off"><div class="chips">${PLACES.map(p=>`<button class="chip" data-place="${p}" aria-pressed="${P.place===p}">${p}</button>`).join('')}</div>
     <div id="scenePrev" class="scenebox" style="${sceneBg({place:P.place,kind:P.kind})}">${scene({place:P.place,kind:P.kind})}</div>
     ${preset?'':`<div class="chips" role="group" aria-label="Scene">${SCENE_KINDS.map(k=>`<button class="chip" data-kind="${k}" aria-pressed="${kind===k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`}
+    ${short?`<span class="b">When</span><div class="chips" role="group" aria-label="Date ideas">${ideas.map(([lab,st,n])=>`<button class="chip" data-idea="${st}" data-in="${n}" aria-pressed="${P.start===st&&P.nights===n}">${lab}</button>`).join('')}</div>`:''}
     <label class="b" for="start">First night</label><input id="start" type="date" class="field" value="${P.start}" min="${iso(TODAY)}">
     <div class="row"><span class="col"><span class="b">Nights</span><span class="cap muted">Roughly is fine</span></span><div class="stepper" style="padding:0;background:none"><button data-nights="-1" aria-label="One less night">−</button><span class="b" style="min-width:28px;text-align:center;font-size:17px" aria-live="polite">${P.nights}</span><button data-nights="1" aria-label="One more night">+</button></div></div>
-    <div class="row" style="border-top:1px solid var(--line-subtle);padding-top:12px"><span class="col"><span class="b">Going with someone</span><span class="cap muted">Turn off to save for it on your own</span></span><input type="checkbox" class="switch" id="withPartner" ${P.withPartner?'checked':''}></div>
-    ${P.withPartner?`<label class="b" for="pname">Who’s coming?</label><input id="pname" class="field" value="${esc(P.partnerName)}" placeholder="Their first name" autocomplete="off">`:''}</div>`;
-    bottom=`<button class="btn" data-act="planNext" ${P.place.trim()&&(!P.withPartner||P.partnerName.trim())?'':'disabled'}>Next: what does it need?</button>`;
+    <label class="row" style="border-top:1px solid var(--line-subtle);padding-top:12px"><span class="col"><span class="b">It’s a surprise 🎁</span><span class="cap muted">You plan and save on your own. They don’t see anything until you send a save the date or reveal it.</span></span><input type="checkbox" class="switch" id="surprise" ${P.surprise?'checked':''}></label>
+    ${P.surprise?`<span class="b">Who’s it for?</span>${co.length?`<div class="chips" role="group" aria-label="Who it’s for">${co.map(id=>`<button class="chip" data-sfor="${id}" aria-pressed="${P.forUser===id}">${esc(nameOf(null,id))}</button>`).join('')}</div>`:`<span class="cap muted">They need to be on one of your trips in Bagsy first. You can still plan it now and choose them later.</span>`}`:`<div class="row" style="border-top:1px solid var(--line-subtle);padding-top:12px"><span class="col"><span class="b">Going with someone</span><span class="cap muted">Turn off to save for it on your own</span></span><input type="checkbox" class="switch" id="withPartner" ${P.withPartner?'checked':''}></div>`}
+    ${P.withPartner&&!P.surprise?`<label class="b" for="pname">Who’s coming?</label><input id="pname" class="field" value="${esc(P.partnerName)}" placeholder="Their first name" autocomplete="off">`:''}</div>`;
+    bottom=`<button class="btn" data-act="planNext" ${P.place.trim()&&(P.surprise||!P.withPartner||P.partnerName.trim())?'':'disabled'}>Next: what does it need?</button>`;
   } else if(step===2){
     const chosen=P.parts.filter(p=>p.on), tot=chosen.reduce((s,p)=>s+(+p.cost||0),0), wk=Math.max(1,weeksTo(P.start));
     body=`<div style="padding:4px 8px 0"><h1>What does the trip need?</h1><p class="muted" style="margin:6px 0 0">Pick the parts and give each a rough cost. You can change them later.</p></div>
@@ -393,9 +403,25 @@ function planView(){
   }
   return {main:`<div class="pad" style="padding-bottom:${step===2?300:200}px">${head}${body}</div>`, bottom};
 }
+function coMembers(){ const s=new Set(); for(const t of A.trips) for(const m of t.members||[]) if(m!==user.id) s.add(m); return [...s]; }
+// short-break date ideas: next Valentine's weekend, the next few UK bank holiday weekends, and a weekend about a month out
+function dateIdeas(){
+  const out=[], y=TODAY.getUTCFullYear(); let v=new Date(Date.UTC(y,1,14)); if(v<=addDays(TODAY,7)) v=new Date(Date.UTC(y+1,1,14));
+  out.push(['Valentine’s 💛',iso(v),2]);
+  const BH=['2027-03-29','2027-05-03','2027-05-31','2027-08-30','2028-04-17','2028-05-01','2028-05-29','2028-08-28','2029-04-02','2029-05-07','2029-05-28','2029-08-27'];
+  BH.map(m=>addDays(D(m),-3)).filter(f=>f>addDays(TODAY,14)).slice(0,2).forEach(f=>out.push([`Bank holiday ${f.getUTCDate()} ${MN[f.getUTCMonth()]}`,iso(f),3]));
+  let f=addDays(TODAY,28); while(f.getUTCDay()!==5) f=addDays(f,1); out.push(['A weekend next month',iso(f),2]);
+  return out;
+}
+function setPlanType(k){
+  if(!plan||plan.type===k) return; plan.type=k;
+  if(k==='short'){ let f=addDays(TODAY,42); while(f.getUTCDay()!==5) f=addDays(f,1); plan.start=iso(f); plan.nights=2; }
+  else { plan.start=iso(addDays(TODAY,180)); plan.nights=7; }
+  plan.parts=(k==='short'?SHORT_PARTS:BASE_PARTS).map(([name,cost])=>({name,cost,on:PART_DEF[name][2],owner:PART_DEF[name][1],due:partDue(name,plan.start),depOn:false,dep:'',depDue:iso(addDays(TODAY,14))}));
+}
 function startPlan(){
   const start=iso(addDays(TODAY,180));
-  plan={step:1,place:'',kind:null,start,nights:7,withPartner:true,partnerName:'',adding:false,
+  plan={step:1,type:'holiday',surprise:false,forUser:null,place:'',kind:null,start,nights:7,withPartner:true,partnerName:'',adding:false,
     parts:BASE_PARTS.map(([name,cost])=>({name,cost,on:PART_DEF[name][2],owner:PART_DEF[name][1],due:partDue(name,start),depOn:false,dep:'',depDue:iso(addDays(TODAY,14))}))};
   UI.screen={name:'plan'}; render(); view.scrollTop=0;
 }
@@ -405,7 +431,9 @@ async function createTrip(){
   const P=plan, chosen=P.parts.filter(p=>p.on);
   const kind = sceneKind({place:P.place,kind:P.kind});
   try{
-    const t = await api.createTrip({ place:P.place.trim(), kind, start_date:P.start, nights:P.nights, partner_name:P.withPartner?P.partnerName.trim():'' },
+    if(P.surprise) P.withPartner=false;
+    const extra = {}; if(P.type==='short') extra.trip_type='short'; if(P.surprise) extra.surprise=true;
+    const t = await api.createTrip({ place:P.place.trim(), kind, start_date:P.start, nights:P.nights, partner_name:P.withPartner?P.partnerName.trim():'', ...extra },
       chosen.flatMap(p=>{ const cost=Math.max(0,Math.round(+p.cost||0)), n=Math.max(1,payDates('week',p.due).length);
         const dep=p.depOn?Math.min(cost-1,Math.max(0,Math.round(+p.dep||0))):0;
         const row=(c,mine,dp)=>({ name:p.name, cost:c, owner:mine?user.id:null, for_partner:!mine, due:p.due, method:'none', freq:'week', amount:Math.ceil(c/n), into_label:mine?P.place.trim()+' pot':'', checks:true, schedule_from:iso(TODAY), deposit:dp>0?dp:0, deposit_due:dp>0?p.depDue:null });
@@ -414,9 +442,10 @@ async function createTrip(){
     { const had=chosen.filter(p=>Math.round(+p.had||0)>0&&(!P.withPartner||p.owner!=='partner'));
       if(had.length){ await reload(); const nt=trip(t.id);
         for(const p of had){ const mp=nt&&nt.parts.find(x=>x.name===p.name&&x.owner===user.id); if(mp) await api.addLog({ trip_id:t.id, part_id:mp.id, amount:Math.min(Math.round(+p.had),mp.cost) }); } } }
+    if(P.surprise) await api.setSurprise(t.id,{ to_user:P.forUser||null });
     await api.addActivity(t.id,'planned',{ total:chosen.reduce((s,p)=>s+Math.max(0,Math.round(+p.cost||0)),0), parts:chosen.length });
     plan=null; UI.screen={name:'trip',id:t.id}; busy=false; await reload(); view.scrollTop=0;
-    showToast(P.withPartner?`${esc(t.place)} is planned. Now invite ${esc(P.partnerName.trim())}.`:`${esc(t.place)} is planned. Tap a part to set how you’re saving.`);
+    showToast(P.surprise?`${esc(t.place)} is planned in secret 🤫 Send a save the date or reveal it when you’re ready.`:P.withPartner?`${esc(t.place)} is planned. Now invite ${esc(P.partnerName.trim())}.`:`${esc(t.place)} is planned. Tap a part to set how you’re saving.`);
   }catch(e){ busy=false; render(); fail(e); }
 }
 function fail(e){ console.error(e); showToast(esc(friendly(e))); }
@@ -578,6 +607,11 @@ document.addEventListener('click',async e=>{
   if(ds.amt){ const s=sheet, t=trip(s.trip), p=t.parts.find(x=>x.id===s.part); const cur=s.draft.amt||suggest(p,s.draft.freq); s.draft.amt=Math.max(1,cur+(+ds.amt)); renderLayer(); return; }
   if(ds.yes){ const c=dueChecks().find(x=>x.part===ds.yes&&x.due===ds.due); if(c) logSaving(c.trip,c.part,c.amt,c.due); return; }
   if(ds.notyet){ const c=dueChecks().find(x=>x.part===ds.notyet&&x.due===ds.due); if(!c) return; try{ await api.reply(c.trip,c.part,c.due,'notyet'); await reload(); showToast('No problem. We’ll ask again on Monday.', async()=>{ await api.deleteReply(c.part,c.due); await reload(); }); }catch(err){ fail(err); } return; }
+  if(ds.ttype&&plan){ setPlanType(ds.ttype); render(); return; }
+  if(ds.idea&&plan){ plan.start=ds.idea; plan.nights=+ds.in; fixDues(); render(); return; }
+  if(ds.sfor&&plan){ plan.forUser=plan.forUser===ds.sfor?null:ds.sfor; render(); return; }
+  if(ds.tsfor){ try{ await api.setSurprise(ds.trip,{ to_user:ds.tsfor }); await reload(); }catch(err){ fail(err); } return; }
+  if(ds.surprise){ const x=(A.forMe||[]).find(y=>y.trip_id===ds.surprise); if(x) showReveal(x); return; }
   if(ds.place){ plan.place=ds.place; plan.kind=null; render(); return; }
   if(ds.kind){ plan.kind=ds.kind; render(); return; }
   if(ds.nights){ plan.nights=Math.min(60,Math.max(1,plan.nights+(+ds.nights))); render(); return; }
@@ -650,6 +684,12 @@ document.addEventListener('click',async e=>{
       const t=trip(sheet.trip), l=t&&t.logs.find(x=>x.id===sheet.editLog); if(!l) break;
       try{ await api.deleteLog(l.id); sheet.editLog=null; sheet.confirmLogDel=false; await reload();
         showToast(`Deleted the ${money(+l.amount)} saving.`, async()=>{ await api.addLog({ trip_id:l.trip_id, part_id:l.part_id, amount:+l.amount, check_date:l.check_date||null }); await reload(); }); }catch(err){ fail(err); } } break;
+    case 'saveDate': { const tid=el.dataset.trip, hint=((UI.shint||{})[tid]??(trip(tid).sur||{}).hint??'').trim();
+      try{ await api.setSurprise(tid,{ hint, save_date_at:new Date().toISOString() }); await reload(); const t=trip(tid); showToast(`Save the date sent. ${esc(nameOf(t,t.sur.to_user))} knows to keep ${sDates(t.start,t.nights)} free.`); }catch(err){ fail(err); } } break;
+    case 'reveal': { const tid=el.dataset.trip; if(UI.confirmReveal!==tid){ UI.confirmReveal=tid; render(); break; } UI.confirmReveal=null;
+      const hint=((UI.shint||{})[tid]??(trip(tid).sur||{}).hint??'').trim();
+      try{ await api.setSurprise(tid,{ hint, revealed_at:new Date().toISOString() }); await reload(); const t=trip(tid); showToast(`Revealed ✨ ${esc(nameOf(t,t.sur.to_user))} can see ${esc(t.place)} now.`); }catch(err){ fail(err); } } break;
+    case 'closeReveal': { const el=document.getElementById('reveal'); if(el){ el.classList.remove('on'); setTimeout(()=>el.remove(),300); } } break;
     case 'undo': if(toast&&toast.undo){ const u=toast.undo; toast=null; renderLayer(); try{ await u(); }catch(err){ fail(err); } } break;
     case 'skip': endSplash(); break;
     case 'retry': loadErr=''; render(); reload(); break;
@@ -684,6 +724,7 @@ document.addEventListener('input',e=>{
   if(t.dataset.dep!==undefined&&plan) plan.parts[+t.dataset.dep].dep=t.value.replace(/[^\d]/g,'');
   if(t.dataset.depdue!==undefined&&plan&&t.value) plan.parts[+t.dataset.depdue].depDue=t.value;
   if(t.id==='samt'&&sheet){ t.value=t.value.replace(/[^\d.]/g,''); t.style.width=(Math.max(1,t.value.length)+.6)+'ch'; }
+  if(t.id==='shint'){ UI.shint=UI.shint||{}; UI.shint[t.dataset.strip]=t.value; }
   if(t.id==='into'&&sheet) sheet.draft.into=t.value;
   if(t.dataset.bind&&sheet&&sheet.draft) sheet.draft[t.dataset.bind]=t.value;
   if(t.id==='nm'&&sheet) sheet.name=t.value;
@@ -694,6 +735,7 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='withPartner'&&plan){ plan.withPartner=t.checked; render(); }
+  if(t.id==='surprise'&&plan){ plan.surprise=t.checked; if(t.checked){ plan.withPartner=false; const co=coMembers(); if(co.length===1) plan.forUser=co[0]; } else plan.withPartner=true; render(); }
   if(t.id==='chk'&&sheet) sheet.draft.checks=t.checked;
   if(t.id==='samt'&&sheet){ const v=Math.round(+t.value||0); if(v>=1) sheet.draft.amt=v; renderLayer(); }
   if(t.id==='pDepOn'&&sheet){ sheet.draft.depOn=t.checked; sheet.open=true; renderLayer(); }
@@ -760,8 +802,48 @@ function buzz(kind){ try{ if(navigator.vibrate){ navigator.vibrate(kind==='succe
   hapt.click(); if(kind==='success') setTimeout(()=>hapt.click(),110); }catch(e){} }
 document.addEventListener('click',e=>{ const b=e.target.closest('button,input[type=checkbox].switch'); if(!b||b.disabled) return;
   const a=b.dataset.act;
-  if(a==='doLog'||a==='saveSaving'||a==='create'||a==='saveLog'||b.dataset.yes) buzz('success');
+  if(a==='doLog'||a==='saveSaving'||a==='create'||a==='saveLog'||a==='saveDate'||a==='closeReveal'||(a==='reveal'&&UI.confirmReveal===b.dataset.trip)||b.dataset.yes) buzz('success');
   else if(a==='delLog'||a==='deletePart') buzz('warn');
   else if(b.closest('.seg,.chips,.stepper,[role=radiogroup],.tabbar,nav')||b.matches('.switch,[data-lq],[data-editlog],[data-notyet]')) buzz('tap'); },true);
+
+/* ---------- surprises ---------- */
+const sDates = (start,nights) => tripDates({start,nights});
+function surpriseCard(t){
+  const s=t.sur||{}, to=s.to_user, who=to?esc(nameOf(t,to)):'them', co=coMembers(), hint=(UI.shint&&UI.shint[t.id]!=null)?UI.shint[t.id]:(s.hint||'');
+  let h=`<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row"><span style="font-size:30px;line-height:1" aria-hidden="true">🎁</span><div class="col"><span class="b" style="font-size:16px">A surprise for ${who}</span><span class="cap muted">${s.revealed_at?`Revealed ${fmt(D(localDay(s.revealed_at)),false)}. ${who} can see the place and dates, never the cost.`:s.save_date_at?`Save the date sent ${fmt(D(localDay(s.save_date_at)),false)}. ${who} knows the dates, not where.`:`Only you can see this trip. ${who==='them'?'They see':who+' sees'} nothing yet.`}</span></div></div>`;
+  if(!to) h+= co.length?`<span class="b">Who’s it for?</span><div class="chips">${co.map(id=>`<button class="chip" data-tsfor="${id}" data-trip="${t.id}">${esc(nameOf(t,id))}</button>`).join('')}</div>`:`<span class="cap muted">Once they’re on one of your trips in Bagsy, you can choose them here.</span>`;
+  if(!s.revealed_at&&to){
+    h+=`<label class="b" for="shint">Packing hint <span class="muted" style="font-weight:400">(optional)</span></label><input id="shint" class="field" data-strip="${t.id}" value="${esc(hint)}" placeholder="Bring walking shoes and something smart" maxlength="140">`;
+    h+=`<div style="display:grid;grid-template-columns:${s.save_date_at?'1fr':'1fr 1fr'};gap:8px">${s.save_date_at?'':`<button class="btn s sec" data-act="saveDate" data-trip="${t.id}">Save the date</button>`}<button class="btn s" data-act="reveal" data-trip="${t.id}">${UI.confirmReveal===t.id?'Tap again to reveal':'Reveal it ✨'}</button></div>`;
+    h+=`<span class="cap muted">${s.save_date_at?'':`Save the date: ${who} gets “Keep ${sDates(t.start,t.nights)} free”, no place. `}Reveal: ${who} sees ${esc(t.place)} and the dates. Never the cost.</span>`;
+  }
+  return h+`</div>`;
+}
+function forMeCards(){
+  const list=(A.forMe||[]).filter(x=>tripEnd({start:x.start_date,nights:x.nights})>=TODAY); if(!list.length) return '';
+  let h=`<h2>For you</h2>`;
+  for(const x of list){ const from=esc(x.from_name||'Someone'), dates=sDates(x.start_date,x.nights), wk=weeksTo(x.start_date), days=Math.max(0,Math.round((D(x.start_date)-TODAY)/DAY));
+    const togo = wk>=2?`${wk} weeks to go`:days===0?'Today!':`${days} day${days===1?'':'s'} to go`;
+    if(x.revealed_at){ const st={place:x.place,kind:x.kind};
+      h+=`<button class="card" data-surprise="${x.trip_id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div class="scenehead" style="${sceneBg(st)}">${scene(st)}<span class="pill" style="position:absolute;left:12px;top:12px">🎁 ${esc(x.place)}</span></div>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px"><span class="cap muted">${dates} · ${togo}</span><span style="font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.02em">${from} has bagsied you ${esc(x.place)}</span>${x.hint?`<span class="notice" style="padding:10px 12px">🧳 <span>${esc(x.hint)}</span></span>`:''}</div></button>`;
+    } else {
+      h+=`<div class="card mystery" style="display:flex;flex-direction:column;gap:10px;text-align:center;align-items:center;padding:24px 20px"><span class="gift" aria-hidden="true">🎁</span><span class="cap muted">${togo}</span><span style="font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.02em">Keep ${dates} free</span><span class="muted">${from} is planning something. Where is a secret.</span>${x.hint?`<span class="notice" style="padding:10px 12px;text-align:left">🧳 <span>${esc(x.hint)}</span></span>`:''}</div>`;
+    } }
+  return h;
+}
+// the reveal: blurred scene comes into focus, the place name rises in, the bag hops
+function showReveal(x){
+  if(!x||document.getElementById('reveal')) return;
+  const st={place:x.place,kind:x.kind}, el=document.createElement('div'); el.id='reveal'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Your surprise');
+  el.style.background=SCENE_SKY[sceneKind(st)]; el.innerHTML=`<div class="rv-scene" style="${sceneBg(st)}">${scene(st)}</div><div class="rv-in"><span class="rv-from">${esc(x.from_name||'Someone')} has bagsied you…</span><span class="rv-place">${esc(x.place)}</span><span class="rv-dates">${sDates(x.start_date,x.nights)}</span>${x.hint?`<span class="rv-hint">🧳 ${esc(x.hint)}</span>`:''}<span class="rv-bag">${av(user.id,96)}</span><button class="btn" data-act="closeReveal">Woohoo!</button></div>`;
+  document.body.appendChild(el); requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('on')));
+  const seen=ls.get('bagsy-seen-surprises',[]); if(!seen.includes(x.trip_id)){ seen.push(x.trip_id); ls.set('bagsy-seen-surprises',seen); }
+}
+function checkReveal(){
+  if(!A||!A.forMe||!user) return; const want=ls.get('bagsy-open-surprise',null), seen=ls.get('bagsy-seen-surprises',[]);
+  const x=A.forMe.find(y=>y.revealed_at&&(y.trip_id===want||!seen.includes(y.trip_id))); if(want) ls.set('bagsy-open-surprise',null);
+  if(x) setTimeout(()=>showReveal(x),400);
+}
 
 }
