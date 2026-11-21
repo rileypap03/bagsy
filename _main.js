@@ -528,4 +528,9 @@ window.addEventListener('online',reload);
   booting=false; render();
   if(user) reload();
 })();
-if('serviceWorker' in navigator && location.protocol==='https:' && !api.preview) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator && location.protocol==='https:' && !api.preview){
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', { updateViaCache:'none' }).then(r=>{ r.update().catch(()=>{}); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') r.update().catch(()=>{}); }); }).catch(()=>{});
+  /* a new version just took over: reload once so you see it straight away */
+  let reloaded=false; navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(hadController&&!reloaded&&!sheet&&!plan){ reloaded=true; location.reload(); } });
+}
