@@ -4,5 +4,7 @@ grant select, insert, update, delete on all tables in schema public to authentic
 grant execute on all functions in schema public to authenticated;
 alter default privileges in schema public grant select, insert, update, delete on tables to authenticated;
 alter default privileges in schema public grant execute on functions to authenticated;
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
 -- lets the every-3-days keep-alive ping read the trips table (the security rules give it zero rows)
 grant select on public.trips to anon;

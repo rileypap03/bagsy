@@ -76,3 +76,8 @@ create trigger on_activity_push after insert on public.activity for each row exe
 -- every day at 9am UK winter time / 10am summer time: payday checks, deposits due, and (Sundays) anything behind
 select cron.unschedule('bagsy-daily-push') where exists (select 1 from cron.job where jobname = 'bagsy-daily-push');
 select cron.schedule('bagsy-daily-push', '0 9 * * *', $$ select public.call_push('{"type":"daily"}'::jsonb) $$);
+
+-- the push function reads trips and writes reminders with the server role; newer projects don't grant it automatically
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
+alter default privileges in schema public grant select, insert, update, delete on tables to service_role;
