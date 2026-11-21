@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='e8fec06d';
+window.BAGSY_VERSION='0dc1c4f3';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -472,7 +472,7 @@ function savingSheet(){
   ${theirs?`<div class="notice">${I(IC.lock,18,2)}<span>This is ${esc(ownerName)}’s part, so ${esc(ownerName)} sets how it’s saved. ${p.method==='none'?'They haven’t set it up yet.':p.method==='paid'?'It’s paid in full.':p.method==='adhoc'?'They’re saving as and when.':`They’re saving ${money(p.amt)} ${PER[p.freq]}.`} You can log a saving to help out.</span></div><button class="btn sec" data-log="${t.id}" data-for="${p.id}">Help ${esc(ownerName)} out</button>${details}`:`
   <div role="radiogroup" aria-labelledby="mq" style="display:flex;flex-direction:column;gap:8px"><span id="mq" class="b">Where does the money go?</span>${methods.map(([id,nm,h,tag])=>`<button class="radio" role="radio" aria-checked="${d.method===id}" data-method="${id}"><span class="dot"></span><span class="col"><span class="b" style="font-size:16px">${nm}${tag?`<span class="tag">${tag}</span>`:''}</span><span class="cap muted">${h}</span></span></button>`).join('')}</div>
   ${d.method==='pot'||d.method==='account'?`<div style="display:flex;flex-direction:column;gap:12px"><span class="b">How often</span><div class="seg" role="group" aria-label="How often">${[['week','Weekly'],['fortnight','Fortnightly'],['month','Monthly']].map(([f,l])=>`<button data-freq="${f}" aria-pressed="${d.freq===f}">${l}</button>`).join('')}</div>
-  <div class="stepper"><button data-amt="-1" aria-label="Save £1 less">−</button><div class="col" style="text-align:center;align-items:center" aria-live="polite"><span style="font-size:32px;line-height:36px;font-weight:700;letter-spacing:-.03em">${money(amt)}</span><span class="cap muted">${PER[d.freq]}, ${d.freq==='month'?'on the 27th':d.freq==='week'?'every Friday':'every other Friday'}</span></div><button data-amt="1" aria-label="Save £1 more">+</button></div>
+  <div class="stepper"><button data-amt="-1" aria-label="Save £1 less">−</button><div class="col" style="text-align:center;align-items:center" aria-live="polite"><label class="amtin"><span aria-hidden="true">£</span><input id="samt" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" aria-label="Amount each time" value="${amt}" style="width:${String(amt).length+.6}ch"></label><span class="cap muted">${PER[d.freq]}, ${d.freq==='month'?'on the 27th':d.freq==='week'?'every Friday':'every other Friday'}</span></div><button data-amt="1" aria-label="Save £1 more">+</button></div>
   <div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:var(--track)"><span style="flex:${Math.max(p.saved,0.01)};background:var(--brass)"></span><span style="flex:${planned||0.01};background:var(--brass-light)"></span><span style="flex:${Math.max(rem-planned,0)}"></span></div>${depLine?`<span class="sm b" style="color:${col}">${depLine}</span>`:''}<span class="sm b" style="color:${col}">${outcome}</span>${n?`<span class="cap muted">${n} payment${n===1?'':'s'} ${d.freq==='week'?'every Friday':d.freq==='fortnight'?'every other Friday':'monthly'}, first on ${fmt(dates[0])}.</span>`:''}${amt!==sugg&&n?`<button class="link" style="align-self:flex-start;padding:4px 0" data-act="sugg">Use the suggested ${money(sugg)} ${PER[d.freq]}</button>`:''}</div></div>`:''}
   ${d.method==='adhoc'&&rem?`<div class="notice">${I(IC.bulb,20,2)}<span>No schedule, that’s fine. To be ready by ${fmt(D(p.due),false)} you’d need about <b>${money(Math.ceil(rem/Math.max(1,weeksTo(p.due))))} a week</b>${dl&&D(p.depositDue)>=TODAY?`, and ${money(dl)} by ${fmt(D(p.depositDue),false)} for the deposit`:''}.</span></div>`:''}
   ${dl&&d.method!=='paid'?`<div class="notice">${I(IC.tick,18,2.4)}<div class="col" style="gap:6px"><span>Already paid the ${money(p.deposit)} deposit?</span><button class="link" style="padding:0;color:var(--ink);align-self:flex-start" data-log="${t.id}" data-for="${p.id}" data-amt0="${dl}">Log ${money(dl)} for the deposit</button></div></div>`:''}
@@ -665,6 +665,7 @@ document.addEventListener('input',e=>{
   if(t.dataset.due!==undefined&&plan&&t.value) plan.parts[+t.dataset.due].due=t.value;
   if(t.dataset.dep!==undefined&&plan) plan.parts[+t.dataset.dep].dep=t.value.replace(/[^\d]/g,'');
   if(t.dataset.depdue!==undefined&&plan&&t.value) plan.parts[+t.dataset.depdue].depDue=t.value;
+  if(t.id==='samt'&&sheet){ t.value=t.value.replace(/[^\d.]/g,''); t.style.width=(Math.max(1,t.value.length)+.6)+'ch'; }
   if(t.id==='into'&&sheet) sheet.draft.into=t.value;
   if(t.dataset.bind&&sheet&&sheet.draft) sheet.draft[t.dataset.bind]=t.value;
   if(t.id==='nm'&&sheet) sheet.name=t.value;
@@ -676,6 +677,7 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='withPartner'&&plan){ plan.withPartner=t.checked; render(); }
   if(t.id==='chk'&&sheet) sheet.draft.checks=t.checked;
+  if(t.id==='samt'&&sheet){ const v=Math.round(+t.value||0); if(v>=1) sheet.draft.amt=v; renderLayer(); }
   if(t.id==='pDepOn'&&sheet){ sheet.draft.depOn=t.checked; sheet.open=true; renderLayer(); }
   if(t.dataset.depon!==undefined&&plan){ const x=plan.parts[+t.dataset.depon]; x.depOn=t.checked; if(t.checked&&!x.depDue) x.depDue=iso(addDays(TODAY,14)); render(); }
   if(t.dataset.notify&&user&&A){ setNotify(t.dataset.notify,t.checked); }
@@ -686,6 +688,7 @@ document.addEventListener('toggle',e=>{ if(e.target.id==='pdet'&&sheet) sheet.op
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&sheet&&sheet.type!=='onboard'){ sheet=null; renderLayer(); }
   if(e.key==='Enter'&&(e.target.id==='email'||e.target.id==='pw')) document.querySelector('[data-act=auth]')?.click();
+  if(e.key==='Enter'&&e.target.id==='samt') e.target.blur();
   if(e.key==='Enter'&&e.target.id==='joinCode') document.querySelector('[data-act=lookupCode]')?.click();
 });
 /* keep both phones in step: refresh when the app comes back to the front, and every 30 seconds while open */
@@ -727,5 +730,7 @@ function topTint(){ const bar=document.getElementById('topbar'); if(!bar) return
 document.getElementById('view').addEventListener('scroll',topTint,{passive:true});
 new MutationObserver(topTint).observe(document.getElementById('view'),{childList:true});
 topTint();
+
+document.addEventListener('focusin',e=>{ if(e.target.id==='samt') setTimeout(()=>e.target.select(),0); });
 
 }
