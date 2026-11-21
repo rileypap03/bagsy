@@ -144,6 +144,9 @@ details summary::after{content:"+";font-size:20px;color:var(--ink-muted)}details
 details summary::-webkit-details-marker{display:none}
 .link.behind{color:var(--behind)}
 .setup{color:var(--brass-deep);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+/* on phones the page itself is the app: no dark frame behind the status bar */
+html,body{background:var(--surface-page)}
+@media(min-width:520px){html,body{background:#2A2C30}}
 
 </style>
 </head>
