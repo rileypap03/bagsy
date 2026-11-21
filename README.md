@@ -23,6 +23,10 @@ An installable web app (PWA). Hosted on GitHub Pages, data in Supabase.
 
 Source lives in the `_*.js`, `_*.css` and `*.tpl.*` files. Run `python3 build.py` to rebuild `index.html`, `app.js` and `sw.js`. Leave `config.js` empty to run in preview mode (fake data in your browser, code is always 123456).
 
+## Keeping the free database awake
+
+Supabase pauses free projects after a week with no activity. `.github/workflows/keepalive.yml` pings it every 3 days from GitHub, for free. To check it: repo → Actions → Keep Supabase awake → Run workflow.
+
 ## Limits for now
 
 - Supabase's built-in email sender only sends a few emails an hour. Fine for two people; for more, connect your own email service in Authentication → SMTP.

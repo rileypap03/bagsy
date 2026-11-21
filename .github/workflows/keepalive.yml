@@ -1,0 +1,19 @@
+# Pings the Supabase database every 3 days so the free project never pauses for inactivity.
+name: Keep Supabase awake
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ping the database
+        run: |
+          URL=$(grep -o "supabaseUrl: *'[^']*'" config.js | sed "s/.*'\(.*\)'/\1/")
+          KEY=$(grep -o "supabaseAnonKey: *'[^']*'" config.js | sed "s/.*'\(.*\)'/\1/")
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "config.js has no Supabase details yet, nothing to ping"; exit 0; fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$URL/rest/v1/trips?select=id&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          echo "Supabase answered $code"
+          [ "$code" = "200" ]
