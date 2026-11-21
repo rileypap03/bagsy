@@ -310,9 +310,13 @@ function showSplash(){
   el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video><button class="skip" data-act="skip">Skip</button>`;
   document.getElementById('phone').appendChild(el);
   const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash; v.onerror=()=>setTimeout(endSplash,800);
-  const go=()=>v.play().catch(()=>setTimeout(endSplash,1200)); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) go(); },500); setTimeout(endSplash,7000);
+  /* if the phone won't autoplay (Low Power Mode does this), show the finished splash still for a moment instead of a play button */
+  let still=false; const fallback=()=>{ if(still||splashSeen) return; still=true; v.remove(); const im=document.createElement('img'); im.src='img/splash-end.jpg'; im.alt=''; im.style.cssText='width:100%;height:100%;object-fit:cover'; el.insertBefore(im,el.firstChild); setTimeout(endSplash,1100); };
+  const go=()=>v.play().catch(fallback); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) fallback(); },900); setTimeout(endSplash,7000);
+  setTheme('#E9BE4E');
 }
-function endSplash(){ if(splashSeen) return; splashSeen=true; const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
+function setTheme(c){ const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); }
+function endSplash(){ if(splashSeen) return; splashSeen=true; setTheme('#F1F3F2'); const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
 const sheetHead = (id,title,sub) => `<span class="grab" aria-hidden="true"></span><div class="row"><div class="col"><span id="${id}" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${title}</span>${sub?`<span class="cap muted">${sub}</span>`:''}</div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>`;
 const wrap = (type,id,inner) => `<div class="scrim" data-act="closeSheet"><div class="sheet" data-type="${type}" role="dialog" aria-modal="true" aria-labelledby="${id}" data-stop>${inner}</div></div>`;
 function savingSheet(){
