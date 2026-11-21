@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='afa45ce5';
+window.BAGSY_VERSION='26338d91';
 {
 /* ---------- location scenes ---------- */
 const SC = {sky:'#22408C',far:'#3456A8',far2:'#2C4C9E',mid:'#1F3578',near:'#16214A',cream:'#F4EAD3',shade:'#E0CFAD',brass:'#D9A441',yellow:'#FFC53D',terra:'#C8603F',peach:'#F2B48A',blue:'#A9BDEB',rose:'#E58F7B',green:'#2E6A58',green2:'#245446',glow:'#FFD27A',water:'#2A4A9C'};
@@ -436,8 +436,8 @@ function showSplash(){
   const go=()=>v.play().catch(fallback); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) fallback(); },900); setTimeout(endSplash,7000);
 
 }
-function setTheme(c){ const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); document.documentElement.style.background=c; document.body.style.background=c; }
-function clearTheme(){ const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content','#F1F3F2'); document.documentElement.style.background=''; document.body.style.background=''; }
+function setTheme(c){ const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); if(innerWidth<520){ document.documentElement.style.background=c; document.body.style.background=c; } }
+function clearTheme(){ const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content','#F1F3F2'); document.documentElement.style.background=''; document.body.style.background=''; document.documentElement.classList.add('app'); }
 function endSplash(){ if(splashSeen) return; splashSeen=true; clearTheme(); const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
 const sheetHead = (id,title,sub) => `<span class="grab" aria-hidden="true"></span><div class="row"><div class="col"><span id="${id}" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${title}</span>${sub?`<span class="cap muted">${sub}</span>`:''}</div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>`;
 const wrap = (type,id,inner) => `<div class="scrim" data-act="closeSheet"><div class="sheet" data-type="${type}" role="dialog" aria-modal="true" aria-labelledby="${id}" data-stop>${inner}</div></div>`;

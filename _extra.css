@@ -26,6 +26,7 @@ details summary::-webkit-details-marker{display:none}
 .link.behind{color:var(--behind)}
 .setup{color:var(--brass-deep);font-weight:600;text-decoration:underline;text-underline-offset:2px}
 /* on phones the page itself is the app: no dark frame behind the status bar */
-html,body{background:var(--surface-page)}
-@media(min-width:520px){html,body{background:#2A2C30}}
+html,body{background:#E9BE4E}   /* splash yellow until the splash ends, then the app sets its light grey */
+html.app,html.app body{background:var(--surface-page)}
+@media(min-width:520px){html,body,html.app,html.app body{background:#2A2C30}}
 .splash .skip{top:calc(16px + env(safe-area-inset-top))}
