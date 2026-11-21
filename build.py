@@ -5,7 +5,10 @@ stars_flag = '''const stars = n => `<svg aria-hidden="true" style="position:abso
 const flag = t => (t.place||'').trim().toLowerCase()==='lisbon'?`<svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><rect width="10" height="24" fill="#046A38"/><rect x="10" width="14" height="24" fill="#DA291C"/><circle cx="10" cy="12" r="3.8" fill="#FFE000"/></svg>`:`<span class="flag" aria-hidden="true">${esc(((t.place||'?')[0]||'?').toUpperCase())}</span>`;
 '''
 app = '{\n' + r('_scenes.js') + stars_flag + r('_avatar.js') + r('_main.js') + '\n}\n'
-ver = hashlib.sha1((app + r('api.js') + r('_style.css') + r('_extra.css')).encode()).hexdigest()[:8]
+import glob
+h = hashlib.sha1((app + r('api.js') + r('_style.css') + r('_extra.css')).encode())
+for f in sorted(glob.glob(os.path.join(H, 'img', '*')) + glob.glob(os.path.join(H, 'icons', '*'))): h.update(open(f, 'rb').read())
+ver = h.hexdigest()[:8]
 app = f"window.BAGSY_VERSION='{ver}';\n" + app
 open(os.path.join(H, 'app.js'), 'w', encoding='utf8').write(app)
 open(os.path.join(H, 'index.html'), 'w', encoding='utf8').write(r('index.tpl.html').replace('/*STYLE*/', r('_style.css') + r('_extra.css')))
