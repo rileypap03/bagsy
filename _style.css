@@ -68,10 +68,13 @@ button{cursor:pointer}
 .radio .dot{width:22px;height:22px;border-radius:11px;border:2px solid var(--line-control);background:#fff;flex:none;margin-top:1px}
 .radio[aria-checked=true] .dot{border:7px solid var(--ink)}
 .tag{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--yellow);margin-left:6px}
-.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border-radius:12px;background:var(--surface-page)}
-.seg.two{grid-template-columns:repeat(2,minmax(0,1fr))}
-.seg button{height:40px;border:0;border-radius:9px;background:transparent;font-weight:600;font-size:14px}
-.seg button[aria-pressed=true]{background:#fff;box-shadow:0 1px 3px rgba(17,18,20,.12)}
+.seg{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);padding:4px;border-radius:12px;background:#E6E9E8;isolation:isolate}
+.seg::before{content:"";position:absolute;z-index:-1;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / var(--n,2));transform:translateX(calc(100% * var(--i,0)));border-radius:9px;background:#fff;box-shadow:0 1px 2px rgba(17,18,20,.08),0 3px 8px rgba(17,18,20,.12);transition:transform .28s cubic-bezier(.3,.7,.2,1)}
+.seg:not([style*="--i"])::before{opacity:0}
+.seg button{position:relative;height:40px;border:0;border-radius:9px;background:transparent;font-weight:600;font-size:14px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;transition:color .2s}
+.seg button+button::after{content:"";position:absolute;left:0;top:11px;bottom:11px;width:1px;background:#C9CECC;transition:opacity .2s}
+.seg button[aria-pressed=true]{color:var(--ink)}
+.seg button[aria-pressed=true]::after,.seg button[aria-pressed=true]+button::after{opacity:0}
 .stepper{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:var(--surface-page)}
 .stepper button{width:44px;height:44px;border-radius:22px;border:1.5px solid var(--line-control);background:#fff;flex:none;font-size:22px;line-height:1}
 .field{height:48px;width:100%;border-radius:12px;border:1.5px solid var(--line-control);background:#fff;padding:0 14px;font-size:16px}
