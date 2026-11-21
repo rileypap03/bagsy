@@ -116,7 +116,7 @@ button{cursor:pointer}
 .bottom{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;box-shadow:var(--shadow-sheet);padding:18px 16px 24px;display:flex;flex-direction:column;gap:10px;z-index:4}
 .toast{position:absolute;left:16px;right:16px;bottom:104px;background:var(--ink);color:#fff;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;z-index:20;font-size:14px;animation:up .2s}
 .toast button{background:none;border:0;color:var(--yellow);font-weight:600;padding:8px 4px}
-.splash{position:absolute;inset:0;background:#E9BE4E;z-index:30;display:grid;place-items:center}
+.splash{position:absolute;inset:0;top:env(safe-area-inset-top);background:#E9BE4E;z-index:30;display:grid;place-items:center}
 .splash video{width:100%;height:100%;object-fit:cover}
 .splash .skip{position:absolute;right:16px;top:16px;height:36px;padding:0 14px;border-radius:18px;border:0;background:rgba(255,255,255,.6);font-weight:600;font-size:14px}
 .demo{font-size:12px;color:var(--ink-muted);text-align:center;margin-top:4px}
@@ -151,7 +151,7 @@ details summary::-webkit-details-marker{display:none}
 html,body{background:var(--surface-page)}   /* light grey from the start: Safari and the home-screen app colour the status bar from this */
 html.app,html.app body{background:var(--surface-page)}
 @media(min-width:520px){html,body,html.app,html.app body{background:#2A2C30}}
-.splash .skip{top:calc(16px + env(safe-area-inset-top))}
+.splash .skip{top:16px}
 /* deposit marker on a part's progress bar */
 .depmark{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--brass-darkest);border-radius:1px}
 .bar:has(.depmark){overflow:visible}

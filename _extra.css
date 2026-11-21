@@ -29,7 +29,7 @@ details summary::-webkit-details-marker{display:none}
 html,body{background:var(--surface-page)}   /* light grey from the start: Safari and the home-screen app colour the status bar from this */
 html.app,html.app body{background:var(--surface-page)}
 @media(min-width:520px){html,body,html.app,html.app body{background:#2A2C30}}
-.splash .skip{top:calc(16px + env(safe-area-inset-top))}
+.splash .skip{top:16px}
 /* deposit marker on a part's progress bar */
 .depmark{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--brass-darkest);border-radius:1px}
 .bar:has(.depmark){overflow:visible}
