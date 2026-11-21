@@ -1,6 +1,6 @@
 /* Bagsy service worker. Code is fetched fresh whenever you're online (so updates show up on the next open);
    the saved copy is only used when you're offline. Pictures and the splash video come from the saved copy. */
-const CACHE = 'bagsy-928f16ce';
+const CACHE = 'bagsy-580ec403';
 const SHELL = ['./','index.html','app.js','api.js','config.js','supabase.js','manifest.webmanifest','splash.mp4',
   'img/plane.png','img/key.png','img/tickets.png','img/wallet.png','img/case.png','img/bagsy-black.svg',
   'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];

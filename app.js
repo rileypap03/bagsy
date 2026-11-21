@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='928f16ce';
+window.BAGSY_VERSION='580ec403';
 {
 /* ---------- location scenes ---------- */
 const SC = {sky:'#22408C',far:'#3456A8',far2:'#2C4C9E',mid:'#1F3578',near:'#16214A',cream:'#F4EAD3',shade:'#E0CFAD',brass:'#D9A441',yellow:'#FFC53D',terra:'#C8603F',peach:'#F2B48A',blue:'#A9BDEB',rose:'#E58F7B',green:'#2E6A58',green2:'#245446',glow:'#FFD27A',water:'#2A4A9C'};
@@ -122,7 +122,10 @@ function avatarSVG(a,s){
 const api = window.bagsyApi;
 const DAY = 864e5;
 const now0 = new Date(); let TODAY = new Date(Date.UTC(now0.getFullYear(), now0.getMonth(), now0.getDate()));
-const BASE_PARTS = [['Flights',420],['Stay',680],['Days out',200],['Spending money',600]];
+const BASE_PARTS = [['Flights',420],['Stay',680],['Package holiday',1100],['Days out',200],['Spending money',600]];
+/* how many days before the trip each part is usually needed, who takes it by default, and whether it starts switched on */
+const PART_DEF = {'Flights':[150,'me',true],'Stay':[100,'partner',true],'Package holiday':[120,'split',false],'Days out':[40,'me',false],'Spending money':[2,'partner',true]};
+const partDue = (name,start) => { const d=iso(addDays(D(start),-((PART_DEF[name]||[14])[0]))); return d<iso(TODAY)?iso(addDays(TODAY,7)):d; };
 const PLACES = ['Lisbon','Barcelona','Copenhagen','Rome'];
 const SPLIT_COLS = ['var(--brass)','var(--brass-deep)','var(--brass-light)','var(--brass-darkest)'];
 const I = (d,s=20,w=2.2)=>`<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
@@ -374,16 +377,16 @@ function planView(){
     body=`<div style="padding:4px 8px 0"><h1>What does the trip need?</h1><p class="muted" style="margin:6px 0 0">Pick the parts and give each a rough cost. You can change them later.</p></div>
     <div class="tiles">${P.parts.map((p,i)=>`<div class="tile ${p.on?'on':''}">${partIcon(p.name).replace('class="ico img"',`class="ico img" style="opacity:${p.on?1:.55}"`)}${p.on?`<span class="chk" aria-hidden="true">${I(IC.tick,14,3)}</span>`:''}<label class="b" for="cost${i}" style="min-height:40px;line-height:1.25">${esc(p.name)}</label>${p.on?`<div class="money" style="margin-top:auto"><span class="b muted">£</span><input id="cost${i}" inputmode="numeric" data-cost="${i}" value="${p.cost}"></div><button class="link" style="padding:4px 0 0;font-size:13px;align-self:flex-start" data-toggle="${i}">Remove</button>`:`<button class="btn s sec" style="margin-top:auto" data-toggle="${i}">${I(IC.plus,14,2.6)} Add</button>`}</div>`).join('')}</div>
     ${P.adding?`<div class="card" style="display:flex;flex-direction:column;gap:10px"><label class="b" for="newName">Your own part</label><input id="newName" class="field" placeholder="Insurance, a big dinner…"><div class="money"><span class="b muted">£</span><input id="newCost" inputmode="numeric" placeholder="Rough cost"></div><button class="btn s" data-act="addPlanPart">Add part</button></div>`:`<button class="dash" data-act="adding">${I(IC.plus,16,2.4)} Add your own part</button>`}
-    <div class="notice">${I(IC.bulb,20,2)}<span>These starting costs are rough guesses. Swap in real prices once you’ve looked.</span></div>`;
+    <div class="notice">${I(IC.bulb,20,2)}<span>Flights and hotel booked as one deal? Add <b>Package holiday</b> instead, and split it between you on the next step. Starting costs are rough guesses, so swap in real prices once you’ve looked.</span></div>`;
     bottom=`<div class="row" style="align-items:baseline;justify-content:space-between"><span class="muted">Trip total · ${chosen.length} part${chosen.length===1?'':'s'}</span><span style="font-size:32px;font-weight:700;letter-spacing:-.03em" id="planTotal">${money(tot)}</span></div>
     <div class="splitc">${chosen.map((p,i)=>`<span style="flex:${+p.cost||1};background:${SPLIT_COLS[i%4]}"></span>`).join('')}</div>
     <div class="sm muted">About <b style="color:var(--ink)" id="planWeek">${money(Math.ceil(tot/wk))} a week</b>${P.withPartner?' between you':''}, over ${wk} weeks</div>
     <button class="btn" data-act="planNext" ${chosen.length&&tot>0?'':'disabled'}>Next: who’s bagsying what</button>`;
   } else {
     const chosen=P.parts.filter(p=>p.on);
-    body=`<div style="padding:4px 8px 0"><h1>Who’s bagsying what?</h1><p class="muted" style="margin:6px 0 0">Each part has one owner and a date it’s needed by. Money stays in each person’s own bank.</p></div>
-    ${chosen.map(p=>{ const i=P.parts.indexOf(p); return `<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${partIcon(p.name)}<span class="col"><span class="b" style="font-size:16px">${esc(p.name)}</span><span class="cap muted">${money(+p.cost||0)}</span></span></div>${P.withPartner?`<div class="seg two" role="group" aria-label="Who bagsies ${esc(p.name)}">${['me','partner'].map(w=>`<button data-owner="${i}" data-w="${w}" aria-pressed="${p.owner===w}">${w==='me'?'Me':esc(pn)}</button>`).join('')}</div>`:''}<label class="cap muted" for="due${i}">Needed by</label><input id="due${i}" type="date" class="field" data-due="${i}" value="${p.due}" min="${iso(TODAY)}"></div>`; }).join('')}`;
-    const mine=chosen.filter(p=>!P.withPartner||p.owner==='me').reduce((s,p)=>s+(+p.cost||0),0);
+    body=`<div style="padding:4px 8px 0"><h1>Who’s bagsying what?</h1><p class="muted" style="margin:6px 0 0">Give each part an owner, or split it between you, and a date it’s needed by. Money stays in each person’s own bank.</p></div>
+    ${chosen.map(p=>{ const i=P.parts.indexOf(p); return `<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row">${partIcon(p.name)}<span class="col"><span class="b" style="font-size:16px">${esc(p.name)}</span><span class="cap muted">${money(+p.cost||0)}</span></span></div>${P.withPartner?`<div class="seg two" role="group" aria-label="Who bagsies ${esc(p.name)}">${['me','partner','split'].map(w=>`<button data-owner="${i}" data-w="${w}" aria-pressed="${p.owner===w}">${w==='me'?'Me':w==='split'?'Split it':esc(pn)}</button>`).join('')}</div>${p.owner==='split'?`<span class="cap muted">You each save ${money(Math.round((+p.cost||0)/2))} towards it, in your own bank.</span>`:''}`:''}<label class="cap muted" for="due${i}">Needed by</label><input id="due${i}" type="date" class="field" data-due="${i}" value="${p.due}" min="${iso(TODAY)}"></div>`; }).join('')}`;
+    const mine=chosen.reduce((s,p)=>s+(!P.withPartner||p.owner==='me'?(+p.cost||0):p.owner==='split'?Math.round((+p.cost||0)/2):0),0);
     bottom=`<div class="row" style="justify-content:space-between"><span class="muted">You’re bagsying</span><span class="b" style="font-size:20px">${money(mine)}</span></div><button class="btn" data-act="create" ${busy?'disabled':''}>${busy?'Creating…':'Create trip'}</button>`;
   }
   return {main:`<div class="pad" style="padding-bottom:${step===2?300:200}px">${head}${body}</div>`, bottom};
@@ -391,18 +394,20 @@ function planView(){
 function startPlan(){
   const start=iso(addDays(TODAY,180));
   plan={step:1,place:'',kind:null,start,nights:7,withPartner:true,partnerName:'',adding:false,
-    parts:BASE_PARTS.map(([name,cost],i)=>({name,cost,on:i!==2,owner:i%2?'partner':'me',due:iso(addDays(D(start),-(i===0?150:i===1?100:i===2?40:2)))}))};
+    parts:BASE_PARTS.map(([name,cost])=>({name,cost,on:PART_DEF[name][2],owner:PART_DEF[name][1],due:partDue(name,start)}))};
   UI.screen={name:'plan'}; render(); view.scrollTop=0;
 }
-function fixDues(){ const s=D(plan.start); plan.parts.forEach((p,i)=>{ const d=iso(addDays(s,-(i===0?150:i===1?100:i===2?40:2))); p.due = d<iso(TODAY)?iso(addDays(TODAY,7)):d; }); }
+function fixDues(){ plan.parts.forEach(p=>{ p.due=partDue(p.name,plan.start); }); }
 async function createTrip(){
   if(busy) return; busy=true; render();
   const P=plan, chosen=P.parts.filter(p=>p.on);
   const kind = PLACE_KIND[P.place.trim().toLowerCase()] || P.kind || 'coast';
   try{
     const t = await api.createTrip({ place:P.place.trim(), kind, start_date:P.start, nights:P.nights, partner_name:P.withPartner?P.partnerName.trim():'' },
-      chosen.map(p=>{ const cost=Math.max(0,Math.round(+p.cost||0)), n=Math.max(1,payDates('week',p.due).length), mine=!P.withPartner||p.owner==='me';
-        return { name:p.name, cost, owner:mine?user.id:null, for_partner:!mine, due:p.due, method:'none', freq:'week', amount:Math.ceil(cost/n), into_label:mine?P.place.trim()+' pot':'', checks:true, schedule_from:iso(TODAY) }; }));
+      chosen.flatMap(p=>{ const cost=Math.max(0,Math.round(+p.cost||0)), n=Math.max(1,payDates('week',p.due).length);
+        const row=(c,mine)=>({ name:p.name, cost:c, owner:mine?user.id:null, for_partner:!mine, due:p.due, method:'none', freq:'week', amount:Math.ceil(c/n), into_label:mine?P.place.trim()+' pot':'', checks:true, schedule_from:iso(TODAY) });
+        if(P.withPartner&&p.owner==='split'){ const a=Math.ceil(cost/2); return [row(a,true),row(cost-a,false)]; }
+        return [row(cost,!P.withPartner||p.owner==='me')]; }));
     await api.addActivity(t.id,'planned',{ total:chosen.reduce((s,p)=>s+Math.max(0,Math.round(+p.cost||0)),0), parts:chosen.length });
     plan=null; UI.screen={name:'trip',id:t.id}; busy=false; await reload(); view.scrollTop=0;
     showToast(P.withPartner?`${esc(t.place)} is planned. Now invite ${esc(P.partnerName.trim())}.`:`${esc(t.place)} is planned. Tap a part to set how you’re saving.`);
@@ -497,7 +502,7 @@ function addPartSheet(){
   return wrap('addPart','apt',`${sheetHead('apt','Add a part')}<label class="b" for="apName">What is it?</label><input id="apName" class="field" data-bind="name" value="${esc(d.name)}" placeholder="Insurance, car hire…">
   <label class="b" for="apCost">Rough cost</label><div class="money" style="height:48px;background:#fff;border:1.5px solid var(--line-control)"><span class="b muted">£</span><input id="apCost" inputmode="decimal" data-bind="cost" value="${esc(d.cost)}"></div>
   <label class="b" for="apDue">Needed by</label><input id="apDue" type="date" class="field" data-bind="due" value="${d.due}">
-  ${pt?`<span class="b">Who’s bagsying it</span><div class="seg two">${[[user.id,'Me'],[pt.id,pt.name]].map(([id,l])=>`<button data-apowner="${id}" aria-pressed="${d.owner===id}">${esc(l)}</button>`).join('')}</div>`:''}
+  ${pt?`<span class="b">Who’s bagsying it</span><div class="seg">${[[user.id,'Me'],[pt.id,pt.name],['split','Split it']].map(([id,l])=>`<button data-apowner="${id}" aria-pressed="${d.owner===id}">${esc(l)}</button>`).join('')}</div>${d.owner==='split'?`<span class="cap muted">Adds it to both your cards, half each.</span>`:''}`:''}
   <button class="btn" data-act="doAddPart" ${busy?'disabled':''}>Add part</button>`);
 }
 function showToast(msg,undo){ toast={msg,undo}; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ toast=null; renderLayer(); },5500); renderLayer(); }
@@ -546,7 +551,10 @@ document.addEventListener('click',async e=>{
   if(ds.place){ plan.place=ds.place; plan.kind=null; render(); return; }
   if(ds.kind){ plan.kind=ds.kind; render(); return; }
   if(ds.nights){ plan.nights=Math.min(60,Math.max(1,plan.nights+(+ds.nights))); render(); return; }
-  if(ds.toggle){ const p=plan.parts[+ds.toggle]; p.on=!p.on; render(); return; }
+  if(ds.toggle){ const p=plan.parts[+ds.toggle]; p.on=!p.on;
+    if(p.on&&p.name==='Package holiday') plan.parts.forEach(x=>{ if(x.name==='Flights'||x.name==='Stay') x.on=false; });
+    if(p.on&&(p.name==='Flights'||p.name==='Stay')) plan.parts.forEach(x=>{ if(x.name==='Package holiday') x.on=false; });
+    render(); return; }
   if(ds.owner){ plan.parts[+ds.owner].owner=ds.w; render(); return; }
   if(ds.avk){ sheet.draft[ds.avk]=ds.avv; if(sheet.type==='onboard') render(); else renderLayer(); return; }
   if(ds.authmode){ auth.mode=ds.authmode; auth.err=''; const v=document.getElementById('email'); if(v) auth.email=v.value; render(); return; }
@@ -603,7 +611,9 @@ document.addEventListener('click',async e=>{
     case 'doAddPart': { const t=trip(sheet.trip), d=sheet.draft, name=document.getElementById('apName').value.trim(), cost=+String(document.getElementById('apCost').value).replace(/[^\d.]/g,''), due=document.getElementById('apDue').value||d.due;
       if(!name){ document.getElementById('apName').focus(); return; } const mine=d.owner===user.id, n=Math.max(1,payDates('week',due).length);
       busy=true; renderLayer();
-      try{ await api.addPart({ trip_id:t.id, name, cost:cost||0, due, ...ownerFields(t,d.owner), method:'none', amount:Math.ceil((cost||0)/n), into_label:mine?t.place+' pot':'', position:t.parts.length, schedule_from:iso(TODAY) }); await api.addActivity(t.id,'part',{ part:name, cost:cost||0 }); busy=false; sheet=null; await reload(); showToast(`${esc(name)} added.`); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
+      try{ const pt=partnerOf(t), c=cost||0, base={ trip_id:t.id, name, due, method:'none', position:t.parts.length, schedule_from:iso(TODAY) };
+        if(d.owner==='split'&&pt){ const a=Math.ceil(c/2); await api.addPart({ ...base, cost:a, ...ownerFields(t,user.id), amount:Math.ceil(a/n), into_label:t.place+' pot' }); await api.addPart({ ...base, cost:c-a, ...ownerFields(t,pt.id), amount:Math.ceil((c-a)/n), into_label:'', position:t.parts.length+1 }); }
+        else await api.addPart({ ...base, cost:c, ...ownerFields(t,d.owner), amount:Math.ceil(c/n), into_label:mine?t.place+' pot':'' }); await api.addActivity(t.id,'part',{ part:name, cost:cost||0 }); busy=false; sheet=null; await reload(); showToast(`${esc(name)} added.`); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
     case 'signOut': await api.signOut(); user=null; A=null; ls.set('bagsy-cache',null); sheet=null; UI={tab:'trips',screen:{name:'tabs'}}; render(); break;
     case 'wipe': api._wipe(); ls.set('bagsy-cache',null); location.reload(); break;
   }
