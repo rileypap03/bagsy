@@ -118,20 +118,22 @@ async function flights(a: Ask, dest: string, raw: Record<string, unknown>) {
   const best = opts.filter(o => o.gap <= 2).sort((x, y) => x.gap - y.gap || x.price - y.price)[0];
   if (!best) return null;
   const nights = nightsBetween(best.depart, best.back);
-  const marker = env('TRAVELPAYOUTS_MARKER');
-  let link = best.link ? 'https://www.aviasales.com' + (best.link.startsWith('/') ? '' : '/') + best.link : searchLink(a, dest, best.depart, nights);
-  if (best.link && marker) link += (link.includes('?') ? '&' : '?') + 'marker=' + encodeURIComponent(marker);
+  const link = best.link ? ukLink('https://www.aviasales.com' + (best.link.startsWith('/') ? '' : '/') + best.link) : searchLink(a, dest, best.depart, nights);
   return { price: Math.round(best.price), depart: best.depart, back: best.back, nights, direct: best.direct, airline: best.airline, link };
 }
 
 /* ---------- glue ---------- */
+function ukLink(url: string) {
+  const u = new URL(url); u.searchParams.set('currency', 'gbp'); u.searchParams.set('locale', 'en-gb');
+  const marker = env('TRAVELPAYOUTS_MARKER'); if (marker) u.searchParams.set('marker', marker);
+  return u.toString();
+}
 function firstFriday(ym: string) { const d = new Date(ym + '-01T00:00:00Z'); while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); }
 function searchLink(a: Ask, dest: string, depart: string, nights: number) {
   // Aviasales search URL: ORIGIN + DDMM + DEST + DDMM(return) + passengers
   const d = new Date(depart + 'T00:00:00Z'), b = new Date(d.getTime() + nights * 864e5);
   const dm = (x: Date) => String(x.getUTCDate()).padStart(2, '0') + String(x.getUTCMonth() + 1).padStart(2, '0');
-  const marker = env('TRAVELPAYOUTS_MARKER');
-  return `https://www.aviasales.com/search/${a.origin}${dm(d)}${dest}${dm(b)}${a.people}` + (marker ? `?marker=${encodeURIComponent(marker)}` : '');
+  return ukLink(`https://www.aviasales.com/search/${a.origin}${dm(d)}${dest}${dm(b)}${a.people}`);
 }
 
 export async function handler(req: Request) {
