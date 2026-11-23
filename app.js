@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='2f6f4e38';
+window.BAGSY_VERSION='f4c13937';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -956,13 +956,19 @@ document.addEventListener('focusin',e=>{ if(e.target.id==='samt') setTimeout(()=
 // switch gives the system tick, so we click a hidden one. Only fires inside a tap, which is when we want it.
 const hapt=(()=>{ const l=document.createElement('label'); l.setAttribute('aria-hidden','true'); l.style.cssText='position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
   l.innerHTML='<input type="checkbox" switch tabindex="-1">'; document.body.appendChild(l); return l; })();
-function buzz(kind){ try{ if(navigator.vibrate){ navigator.vibrate(kind==='success'?[12,60,24]:kind==='warn'?[30,40,30]:8); return; }
-  hapt.click(); if(kind==='success') setTimeout(()=>hapt.click(),110); }catch(e){} }
+// Three strengths: tap (controls), success (saved / set up), celebrate (a part or the whole trip packed, a surprise opened).
+// iPhone ticks only count inside the tap, so celebrations are worked out here, before the save goes off, not after it lands.
+function buzz(kind){ try{ if(navigator.vibrate){ navigator.vibrate(kind==='celebrate'?[14,50,14,50,40]:kind==='success'?[12,60,24]:kind==='warn'?[30,40,30]:8); return; }
+  hapt.click(); if(kind==='success'||kind==='celebrate') setTimeout(()=>hapt.click(),110); if(kind==='celebrate') setTimeout(()=>hapt.click(),220); }catch(e){} }
+function willPack(tid,pid,amt){ const t=trip(tid), p=t&&t.parts.find(x=>x.id===pid); return !!(p&&amt>0&&p.saved<p.cost&&p.saved+amt>=p.cost); }
 document.addEventListener('click',e=>{ const b=e.target.closest('button,input[type=checkbox].switch'); if(!b||b.disabled) return;
-  const a=b.dataset.act;
-  if(a==='doLog'||a==='saveSaving'||a==='create'||a==='saveLog'||a==='saveDate'||a==='closeReveal'||(a==='reveal'&&UI.confirmReveal===b.dataset.trip)||b.dataset.yes) buzz('success');
+  const a=b.dataset.act, ds=b.dataset;
+  if(a==='doLog'&&sheet){ const v=+String((document.getElementById('lamt')||{}).value||'').replace(/[^\d.]/g,''); buzz(willPack(sheet.trip,sheet.draft&&sheet.draft.part,v)?'celebrate':'success'); }
+  else if(ds.yes){ const c=dueChecks().find(x=>x.part===ds.yes&&x.due===ds.due); buzz(c&&willPack(c.trip,c.part,c.amt)?'celebrate':'success'); }
+  else if(ds.surprise||(a==='reveal'&&UI.confirmReveal===ds.trip)) buzz('celebrate');
+  else if(a==='saveSaving'||a==='create'||a==='saveLog'||a==='saveDate'||a==='closeReveal'||a==='doJoin'||a==='saveMe'||a==='pushOn'||(a==='finishOnboard'&&(document.getElementById('nm')||{}).value?.trim())) buzz('success');
   else if(a==='delLog'||a==='deletePart') buzz('warn');
-  else if(b.closest('.seg,.chips,.stepper,[role=radiogroup],.tabbar,nav')||b.matches('.switch,[data-lq],[data-editlog],[data-notyet]')) buzz('tap'); },true);
+  else if(a==='planNext'||a==='planback'||a==='auth'||b.closest('.seg,.chips,.stepper,[role=radiogroup],.tabbar,nav')||b.matches('.switch,[data-lq],[data-editlog],[data-notyet],[data-avk],[data-avv],[data-kind],[data-place],[data-pick]')) buzz('tap'); },true);
 
 /* ---------- surprises ---------- */
 const sDates = (start,nights) => tripDates({start,nights});
