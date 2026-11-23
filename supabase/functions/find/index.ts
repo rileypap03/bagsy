@@ -87,23 +87,41 @@ const nextMonth = (ym: string) => { const [y, m] = ym.split('-').map(Number); re
 
 async function flights(a: Ask, dest: string, raw: Record<string, unknown>) {
   const token = env('TRAVELPAYOUTS_TOKEN'); if (!token) return null;
-  const q = (ret: string) => {
+  const get = (q: Record<string, string>) => {
     const u = new URL('https://api.travelpayouts.com/aviasales/v3/prices_for_dates');
-    u.search = new URLSearchParams({ origin: a.origin, destination: dest, departure_at: a.month, return_at: ret, one_way: 'false', currency: 'gbp', sorting: 'price', limit: '100', market: 'uk' }).toString();
-    return fetch(u, { headers: { 'X-Access-Token': token } }).then(r => r.json()).catch(e => ({ error: String(e) }));
+    u.search = new URLSearchParams({ currency: 'gbp', sorting: 'price', limit: '100', market: 'uk', ...q }).toString();
+    return fetch(u, { headers: { 'X-Access-Token': token } }).then(r => r.json()).then((x: any) => Array.isArray(x?.data) ? x.data : []).catch(() => []);
   };
-  const res = await Promise.all([q(a.month), q(nextMonth(a.month))]);
-  if (a.debug) raw[dest] = res;
-  const all = res.flatMap((x: any) => Array.isArray(x?.data) ? x.data : []).filter((f: any) => f.departure_at && f.return_at && f.price > 0 && f.departure_at.slice(0, 7) === a.month);
-  if (!all.length) return null;
-  // closest trip length first, then price; accept within 2 nights of what they asked for
-  const fit = all.map((f: any) => ({ f, gap: Math.abs(nightsBetween(f.departure_at, f.return_at) - a.nights) })).filter(x => x.gap <= 2)
-    .sort((x, y) => x.gap - y.gap || x.f.price - y.f.price);
-  const best = (fit[0] || null)?.f; if (!best) return null;
+  const nm = nextMonth(a.month);
+  // Aviasales caches what people recently searched: return trips are sparse, one-way fares much richer, so ask for both at once
+  const [rt1, rt2, out, back1, back2] = await Promise.all([
+    get({ origin: a.origin, destination: dest, departure_at: a.month, return_at: a.month, one_way: 'false' }),
+    get({ origin: a.origin, destination: dest, departure_at: a.month, return_at: nm, one_way: 'false' }),
+    get({ origin: a.origin, destination: dest, departure_at: a.month, one_way: 'true' }),
+    get({ origin: dest, destination: a.origin, departure_at: a.month, one_way: 'true' }),
+    get({ origin: dest, destination: a.origin, departure_at: nm, one_way: 'true' }),
+  ]);
+  if (a.debug) raw[dest] = { rt: rt1.length + rt2.length, out: out.length, back: back1.length + back2.length };
+  const inMonth = (f: any) => f.departure_at && f.price > 0 && f.departure_at.slice(0, 7) === a.month;
+  type Opt = { price: number; depart: string; back: string; gap: number; direct: boolean; airline: string; link: string };
+  const opts: Opt[] = [];
+  for (const f of [...rt1, ...rt2].filter((f: any) => inMonth(f) && f.return_at)) {
+    const n = nightsBetween(f.departure_at, f.return_at);
+    opts.push({ price: f.price, depart: f.departure_at.slice(0, 10), back: f.return_at.slice(0, 10), gap: Math.abs(n - a.nights), direct: !f.transfers && !f.return_transfers, airline: f.airline || '', link: f.link || '' });
+  }
+  const backs = [...back1, ...back2].filter((f: any) => f.departure_at && f.price > 0);
+  for (const o of out.filter(inMonth)) for (const r of backs) {
+    const n = nightsBetween(o.departure_at, r.departure_at); if (n < 1) continue;
+    opts.push({ price: o.price + r.price, depart: o.departure_at.slice(0, 10), back: r.departure_at.slice(0, 10), gap: Math.abs(n - a.nights), direct: !o.transfers && !r.transfers, airline: o.airline || '', link: '' });
+  }
+  // within 2 nights of what they asked for: closest length, then cheapest
+  const best = opts.filter(o => o.gap <= 2).sort((x, y) => x.gap - y.gap || x.price - y.price)[0];
+  if (!best) return null;
+  const nights = nightsBetween(best.depart, best.back);
   const marker = env('TRAVELPAYOUTS_MARKER');
-  let link = '';
-  if (best.link) { link = 'https://www.aviasales.com' + (best.link.startsWith('/') ? '' : '/') + best.link; if (marker) link += (link.includes('?') ? '&' : '?') + 'marker=' + encodeURIComponent(marker); }
-  return { price: Math.round(best.price), depart: best.departure_at.slice(0, 10), back: best.return_at.slice(0, 10), nights: nightsBetween(best.departure_at, best.return_at), direct: !best.transfers && !best.return_transfers, airline: best.airline || '', link };
+  let link = best.link ? 'https://www.aviasales.com' + (best.link.startsWith('/') ? '' : '/') + best.link : searchLink(a, dest, best.depart, nights);
+  if (best.link && marker) link += (link.includes('?') ? '&' : '?') + 'marker=' + encodeURIComponent(marker);
+  return { price: Math.round(best.price), depart: best.depart, back: best.back, nights, direct: best.direct, airline: best.airline, link };
 }
 
 /* ---------- glue ---------- */
@@ -133,24 +151,6 @@ export async function handler(req: Request) {
       notes: String(b.notes || '').slice(0, 200),
       debug: !!b.debug,
     };
-    if (b.probe) { // dev only: compare Travelpayouts query styles for a few routes
-      const token = env('TRAVELPAYOUTS_TOKEN'), out: Record<string, unknown> = {};
-      const get = (path: string, q: Record<string, string>) => { const u = new URL('https://api.travelpayouts.com' + path); u.search = new URLSearchParams(q).toString(); return fetch(u, { headers: { 'X-Access-Token': token } }).then(r => r.json()).catch(e => ({ error: String(e) })); };
-      const n = (x: any) => Array.isArray(x?.data) ? x.data.length : x?.data && typeof x.data === 'object' ? Object.keys(x.data).length : (x?.error || x?.message || 'none');
-      for (const d of (b.probe as string[])) {
-        const base = { origin: a.origin, destination: d, currency: 'gbp' };
-        const v = {
-          pfd_uk_month: await get('/aviasales/v3/prices_for_dates', { ...base, departure_at: a.month, one_way: 'false', limit: '100', market: 'uk' }),
-          pfd_nomarket_month: await get('/aviasales/v3/prices_for_dates', { ...base, departure_at: a.month, one_way: 'false', limit: '100' }),
-          pfd_nomarket_ret: await get('/aviasales/v3/prices_for_dates', { ...base, departure_at: a.month, return_at: a.month, one_way: 'false', limit: '100' }),
-          grouped_dur: await get('/aviasales/v3/grouped_prices', { ...base, departure_at: a.month, group_by: 'departure_at', min_trip_duration: String(a.nights - 2), max_trip_duration: String(a.nights + 2), market: 'uk' }),
-          grouped_dur_nomarket: await get('/aviasales/v3/grouped_prices', { ...base, departure_at: a.month, group_by: 'departure_at', min_trip_duration: String(a.nights - 2), max_trip_duration: String(a.nights + 2) }),
-          oneway_out: await get('/aviasales/v3/prices_for_dates', { ...base, departure_at: a.month, one_way: 'true', limit: '100', market: 'uk' }),
-        };
-        out[d] = { counts: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, n(x)])), sample: Object.fromEntries(Object.entries(v).map(([k, x]: [string, any]) => [k, JSON.stringify(Array.isArray(x?.data) ? x.data.slice(0, 2) : x?.data ? Object.values(x.data).slice(0, 2) : x).slice(0, 400)])) };
-      }
-      return json(out);
-    }
     const cands = await candidates(a);
     const raw: Record<string, unknown> = {};
     const priced = await Promise.all(cands.map(async c => {
