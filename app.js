@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='a168a4ba';
+window.BAGSY_VERSION='7511410b';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -192,14 +192,20 @@ function render(){
     if(pending && !sheet){ sheet={type:'join',code:pending,preview:undefined}; ls.set('bagsy-join',null); loadInvite(sheet); }
   }
   document.getElementById('chrome').innerHTML=chrome;
+  const tp=document.querySelector('#chrome .tpill');
+  if(tp){ const to=TABS.indexOf(UI.tab); if(lastTabIdx>=0&&lastTabIdx!==to){ tp.getBoundingClientRect(); requestAnimationFrame(()=>tp.style.setProperty('--i',to)); const cur=document.querySelector('#chrome .tab[aria-current=page]'); if(cur) cur.classList.add('pop'); } else tp.style.setProperty('--i',to); lastTabIdx=to; }
+  else lastTabIdx=-1;
   if(navigator.setAppBadge){ const n=user&&A?dueChecks().length:0; (n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{}); }
   renderLayer();
 }
 function tabbar(){
   const n=dueChecks().length;
   const t=(k,label,ic)=>`<button class="tab" data-tab="${k}" ${UI.tab===k?'aria-current="page"':''}>${I(IC[ic],22,2)}<span>${label}</span>${k==='activity'&&n?`<span class="badge" aria-hidden="true">${n}</span><span class="sr">, ${n} thing${n===1?'':'s'} need${n===1?'s':''} you</span>`:''}</button>`;
-  return `<nav class="tabs" aria-label="Main">${t('trips','Trips','trips')}${t('activity','Activity','act')}${t('you','You','you')}</nav>`;
+  // the yellow pill is drawn where the last tab was, then glides to the new one (see render)
+  const from=lastTabIdx<0?TABS.indexOf(UI.tab):lastTabIdx;
+  return `<nav class="tabs" aria-label="Main"><span class="tpill" aria-hidden="true" style="--i:${from}"></span>${t('trips','Trips','trips')}${t('activity','Activity','act')}${t('you','You','you')}</nav>`;
 }
+const TABS=['trips','activity','you']; let lastTabIdx=-1;
 const banner = () => (api.preview?`<div class="pv">Preview mode: everything is saved in this browser only.</div>`:'')+(offline?`<div class="pv off">You’re offline. Showing what was saved last time.</div>`:'');
 
 /* sign in with email and password; new accounts are ready straight away (email confirmation is off in Supabase) */
