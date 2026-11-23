@@ -133,6 +133,24 @@ export async function handler(req: Request) {
       notes: String(b.notes || '').slice(0, 200),
       debug: !!b.debug,
     };
+    if (b.probe) { // dev only: compare Travelpayouts query styles for a few routes
+      const token = env('TRAVELPAYOUTS_TOKEN'), out: Record<string, unknown> = {};
+      const get = (path: string, q: Record<string, string>) => { const u = new URL('https://api.travelpayouts.com' + path); u.search = new URLSearchParams(q).toString(); return fetch(u, { headers: { 'X-Access-Token': token } }).then(r => r.json()).catch(e => ({ error: String(e) })); };
+      const n = (x: any) => Array.isArray(x?.data) ? x.data.length : x?.data && typeof x.data === 'object' ? Object.keys(x.data).length : (x?.error || x?.message || 'none');
+      for (const d of (b.probe as string[])) {
+        const base = { origin: a.origin, destination: d, currency: 'gbp' };
+        const v = {
+          pfd_uk_month: await get('/aviasales/v3/prices_for_dates', { ...base, departure_at: a.month, one_way: 'false', limit: '100', market: 'uk' }),
+          pfd_nomarket_month: await get('/aviasales/v3/prices_for_dates', { ...base, departure_at: a.month, one_way: 'false', limit: '100' }),
+          pfd_nomarket_ret: await get('/aviasales/v3/prices_for_dates', { ...base, departure_at: a.month, return_at: a.month, one_way: 'false', limit: '100' }),
+          grouped_dur: await get('/aviasales/v3/grouped_prices', { ...base, departure_at: a.month, group_by: 'departure_at', min_trip_duration: String(a.nights - 2), max_trip_duration: String(a.nights + 2), market: 'uk' }),
+          grouped_dur_nomarket: await get('/aviasales/v3/grouped_prices', { ...base, departure_at: a.month, group_by: 'departure_at', min_trip_duration: String(a.nights - 2), max_trip_duration: String(a.nights + 2) }),
+          oneway_out: await get('/aviasales/v3/prices_for_dates', { ...base, departure_at: a.month, one_way: 'true', limit: '100', market: 'uk' }),
+        };
+        out[d] = { counts: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, n(x)])), sample: Object.fromEntries(Object.entries(v).map(([k, x]: [string, any]) => [k, JSON.stringify(Array.isArray(x?.data) ? x.data.slice(0, 2) : x?.data ? Object.values(x.data).slice(0, 2) : x).slice(0, 400)])) };
+      }
+      return json(out);
+    }
     const cands = await candidates(a);
     const raw: Record<string, unknown> = {};
     const priced = await Promise.all(cands.map(async c => {
