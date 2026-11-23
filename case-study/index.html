@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bagsy: how a design leader ships with AI · Paul Riley</title>
+<meta name="description" content="Case study: Bagsy, a trip-savings app for couples, designed and shipped as a real working app with AI as the team.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#111214;--muted:#5E636A;--line:#E3E5E4;--page:#F6F5F1;--card:#fff;--yellow:#FFC53D;--brass:#C29330;--ok:#137A3F}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--page);color:var(--ink);font:17px/1.6 Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:'cv11' 1}
+img{max-width:100%;display:block}
+a{color:inherit;text-underline-offset:3px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.narrow{max-width:720px}
+.draft{background:var(--ink);color:#fff;font-size:14px;text-align:center;padding:10px 16px}
+.draft b{color:var(--yellow)}
+
+header.hero{padding:72px 0 40px}
+.kicker{font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 18px}
+h1{font-size:clamp(40px,6vw,72px);line-height:1.02;letter-spacing:-.04em;font-weight:800;margin:0 0 22px;max-width:14ch}
+.lede{font-size:clamp(19px,2.2vw,23px);line-height:1.5;color:#2c2f33;max-width:40ch;margin:0}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin:48px 0 0;padding:24px 0 0;border-top:1px solid var(--line)}
+.facts dt{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.facts dd{margin:0;font-size:16px;font-weight:500}
+
+.phones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;align-items:start;margin:40px 0 0}
+.phone{border-radius:34px;overflow:hidden;background:#fff;box-shadow:0 30px 60px -20px rgba(17,18,20,.25),0 0 0 1px rgba(17,18,20,.06)}
+.phones .phone:nth-child(2){transform:translateY(40px)}
+figure{margin:0}
+figcaption{font-size:14px;color:var(--muted);margin-top:14px;line-height:1.45}
+
+section{padding:96px 0 0}
+h2{font-size:clamp(28px,3.4vw,40px);line-height:1.1;letter-spacing:-.03em;font-weight:800;margin:0 0 20px}
+h3{font-size:20px;letter-spacing:-.01em;margin:0 0 8px}
+p{margin:0 0 18px}
+.muted{color:var(--muted)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start}
+.gap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px}
+.tile{background:var(--card);border-radius:20px;padding:22px;box-shadow:0 1px 2px rgba(17,18,20,.05)}
+.tile h3{font-size:17px}
+.tile p{font-size:15px;color:var(--muted);margin:0}
+.tile .no{display:inline-block;font-size:13px;font-weight:700;color:var(--brass);margin-bottom:10px}
+
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:28px}
+.col-card{background:var(--card);border-radius:20px;padding:26px}
+.col-card ul{margin:12px 0 0;padding-left:20px}
+.col-card li{margin:0 0 8px;font-size:16px}
+.tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:99px;background:var(--page)}
+.tag.y{background:var(--yellow)}
+
+.decisions{margin-top:32px;display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
+.decision{display:grid;grid-template-columns:220px minmax(0,1fr);gap:32px;padding:28px 0;border-bottom:1px solid var(--line)}
+.decision h3{font-size:18px}
+.decision p{margin:0 0 10px}
+.decision .why{font-size:15px;color:var(--muted);margin:0}
+
+.wrong{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:28px}
+.wrong .tile{display:flex;flex-direction:column;gap:6px}
+.wrong .was{font-size:14px;color:#A33A2B;font-weight:600}
+.wrong .now{font-size:14px;color:var(--ok);font-weight:600}
+
+.band{background:var(--card);margin-top:96px;padding:72px 0}
+.band section{padding-top:0}
+.strip{margin-top:28px;border-radius:24px;overflow:hidden}
+.bags{background:var(--page);border-radius:24px;padding:24px}
+
+.finder{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin-top:36px}
+.quote{font-size:clamp(22px,2.6vw,30px);line-height:1.35;letter-spacing:-.02em;font-weight:700;max-width:30ch;margin:0}
+.next{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px}
+footer{padding:96px 0 64px;color:var(--muted);font-size:14px}
+
+@media (max-width:860px){
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .two,.split,.wrong{grid-template-columns:minmax(0,1fr)}
+  .gap,.next{grid-template-columns:minmax(0,1fr)}
+  .decision{grid-template-columns:minmax(0,1fr);gap:8px}
+  .phones,.finder{grid-template-columns:repeat(3,minmax(220px,1fr));overflow-x:auto;padding-bottom:12px;scroll-snap-type:x mandatory}
+  .phones>*,.finder>*{scroll-snap-align:start}
+  .phones .phone:nth-child(2){transform:none}
+  section{padding-top:72px}
+}
+</style>
+</head>
+<body>
+<div class="draft"><b>Draft for review.</b> Preview link, not public. Screens use sample data.</div>
+
+<header class="hero wrap">
+  <p class="kicker">Case study · Hands-on</p>
+  <h1>Bagsy: how a design leader ships with&nbsp;AI</h1>
+  <p class="lede">A trip-savings app for couples, taken from an idea to a real app that Ines and I use on our phones. I set the direction and made the calls. AI did most of the building.</p>
+  <dl class="facts">
+    <div><dt>My role</dt><dd>Design lead and product owner</dd></div>
+    <div><dt>The team</dt><dd>Me, with Claude as designer and engineer</dd></div>
+    <div><dt>What shipped</dt><dd>Installable app on iPhone and Android</dd></div>
+    <div><dt>Status</dt><dd>In use by Ines and me</dd></div>
+  </dl>
+  <div class="phones">
+    <figure class="phone"><img src="img/trips.jpg" alt="Bagsy Trips tab showing an upcoming trip to Tenerife with savings progress" loading="eager"></figure>
+    <figure class="phone"><img src="img/trip.jpg" alt="A trip with its scene, the total saved and an invite for the partner"></figure>
+    <figure class="phone"><img src="img/find-ideas.jpg" alt="The holiday finder suggesting Madeira for £567 each, with a budget breakdown"></figure>
+  </div>
+</header>
+
+<main>
+<section class="wrap">
+  <div class="two">
+    <div>
+      <h2>Is this a real problem?</h2>
+      <p>Couples who go away together usually save in two separate bank accounts, with a rough idea of who's paying for what. The tools that exist each cover one slice of that. Bank pots hold the money. Budgeting apps track spending. Splitwise settles up afterwards.</p>
+      <p>None of them help with the part before booking: deciding where to go, what it'll cost, who's covering which bit, and whether you're both on track.</p>
+    </div>
+    <div>
+      <h2>The bet</h2>
+      <p>Split one trip into parts (flights, stay, spending money) and let each person <b>bagsy</b> the parts they'll cover. Everyone saves in their own bank. Bagsy plans and keeps track, and never touches the money.</p>
+      <p class="muted">Never moving money was a deliberate line. It keeps the app simple to trust, means no regulation to deal with, and keeps the product about planning together.</p>
+    </div>
+  </div>
+  <div class="gap">
+    <div class="tile"><span class="no">01</span><h3>Plan alone, then invite</h3><p>One person can plan the whole trip in a couple of minutes before anyone else joins.</p></div>
+    <div class="tile"><span class="no">02</span><h3>Parts, not a pot</h3><p>Each part has an owner, a cost and a due date, so "are we on track?" has a real answer.</p></div>
+    <div class="tile"><span class="no">03</span><h3>A nudge on payday</h3><p>"Did £100 go in?" One tap to confirm, and your partner sees it straight away.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>How I worked: AI as the team, me as the lead</h2>
+  <div class="two">
+    <div>
+      <p>I ran it the way I'd run a small team. I set the direction, agreed the principles, reviewed everything that came back and decided what shipped. The difference was speed. A change I asked for in the morning was on my phone the same day, so I judged real screens with real data instead of mock-ups.</p>
+      <p>The first thing I set up was the design system: colours, type, spacing and core components. That wasn't a design exercise for its own sake. It was guardrails, the same way you'd give a new team a shared kit on day one so their output stays consistent without you checking every pixel.</p>
+    </div>
+    <div class="split" style="margin-top:0">
+      <div class="col-card"><span class="tag y">I delegated</span><ul><li>Writing and testing the code</li><li>Database, sign-in and notifications</li><li>Wiring up AI and flight-price services</li><li>Building screens in Figma from the live app</li></ul></div>
+      <div class="col-card"><span class="tag">I owned</span><ul><li>What we build, and what we don't</li><li>The look: scenes, bags, type, colour</li><li>Every trade-off about money and trust</li><li>Saying "not good enough yet"</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>The calls I made</h2>
+  <p class="muted narrow">These are the decisions that shaped the product. Several of them overruled what AI suggested first.</p>
+  <div class="decisions">
+    <div class="decision"><h3>Trip types, not continents</h3><div><p>Each trip gets a soft 3D scene based on the kind of trip it is (coast, city, snow, desert) rather than a map or a landmark. I made the scenes myself with an image model, to match the 3D icons.</p><p class="why">A scene says how a trip will feel. It works for anywhere, and it never gets a city wrong.</p></div></div>
+    <div class="decision"><h3>Bags instead of faces</h3><div><p>People pick a little luggage character as their avatar instead of a photo or a drawn face. AI's first versions sat the bags in pastel circles. I took the circles away and made the bags bigger.</p><p class="why">It's the name made visible: you bagsy a bag. It's warmer than initials and gives the app a character people remember.</p></div></div>
+    <div class="decision"><h3>Surprise trips never show the cost</h3><div><p>You can plan a trip in secret, send a "save the date", then reveal it. The person being surprised only ever sees the place and the dates.</p><p class="why">The whole point is a gift. Seeing the price would spoil it.</p></div></div>
+    <div class="decision"><h3>AI for judgement, real data for prices</h3><div><p>For the holiday finder I considered using AI agents to scrape deals from social media. I chose to have AI pick places that suit the season and budget, and to take flight prices from Aviasales data. Booking always hands off to the provider.</p><p class="why">In a money app, one invented price costs you trust. AI is good at "where's warm in February?" and bad at quoting today's fares.</p></div></div>
+    <div class="decision"><h3>Every idea fits one screen</h3><div><p>After reviewing the first design, I set a rule: you see every part of an idea without scrolling. Dates first, then the total, the budget bar and the monthly saving.</p><p class="why">You're comparing places on a phone. If you have to scroll each card, you lose track of what you're comparing.</p></div></div>
+  </div>
+</section>
+
+<div class="band">
+<section class="wrap">
+  <h2>The holiday finder</h2>
+  <p class="narrow">"Winter sun in February, £600 each, from London." Bagsy suggests places that fit, prices the flights with recent fares, estimates the stay and spending money, and works out what you'd each need to save a month. One tap turns an idea into a planned trip.</p>
+  <div class="finder">
+    <figure><div class="phone"><img src="img/find-ask.jpg" alt="Find a trip screen with scene tiles, budget and a tap-to-change sentence" loading="lazy"></div><figcaption>Pick a feeling and a budget. The monthly saving updates as you type.</figcaption></figure>
+    <figure><div class="phone"><img src="img/find-busy.jpg" alt="Finding ideas screen with a checklist of steps" loading="lazy"></div><figcaption>About 20 seconds of real work, shown as the steps it's taking.</figcaption></figure>
+    <figure><div class="phone"><img src="img/find-ideas.jpg" alt="An idea card showing dates, total, budget bar and actions" loading="lazy"></div><figcaption>Swipe between ideas. Each card fits one screen.</figcaption></figure>
+  </div>
+</section>
+</div>
+
+<section class="wrap">
+  <h2>Where AI got it wrong</h2>
+  <p class="muted narrow">Shipping fast with AI doesn't mean accepting its first answer. These are real moments from the build. Each needed a human eye on a real phone.</p>
+  <div class="wrong">
+    <div class="tile"><h3>The status bar stuck on yellow</h3><span class="was">First fix: a 1-pixel strip at the top of the screen, which iOS ignored</span><span class="now">After my screenshot: a strip big enough for iOS to pick up its colour</span></div>
+    <div class="tile"><h3>Only 2 of 8 flight prices came back</h3><span class="was">Return fares alone were too sparse to price most places</span><span class="now">Pairing one-way fares lifted it to about 3 in 5, with estimates clearly labelled</span></div>
+    <div class="tile"><h3>A floating suitcase</h3><span class="was">A decorative bag hopping in mid-air on the waiting screen</span><span class="now">I asked whether it earned its place. It didn't, so it went</span></div>
+    <div class="tile"><h3>"Cluttered and hard to scan"</h3><span class="was">Three columns of icons, amounts and notes on each idea</span><span class="now">One total, one bar, three plain rows</span></div>
+    <div class="tile"><h3>Prices in dollars</h3><span class="was">"Check flights" opened the booking site in US dollars</span><span class="now">Links now open in pounds</span></div>
+    <div class="tile"><h3>A heart with no meaning</h3><span class="was">A "favourite" button that didn't go anywhere</span><span class="now">Replaced with "Send to Ines", which says what it does</span></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>The details that make it feel like a product</h2>
+  <div class="two" style="margin-top:28px">
+    <div>
+      <div class="bags"><img src="img/bags.png" alt="Eight cream luggage characters with mustard straps: suitcase, backpack, duffel, hatbox, trunk, tote, satchel and bum bag" loading="lazy"></div>
+      <p class="muted" style="margin-top:14px;font-size:15px">Eight bags, six strap colours, and two people on a trip never get the same colour.</p>
+    </div>
+    <div>
+      <div class="strip"><img src="img/scenes.jpg" alt="Eight soft 3D scenes: coast, city, mountains, countryside, tropical, desert, snow and lakes" loading="lazy"></div>
+      <p class="muted" style="margin-top:14px;font-size:15px">Eight trip-type scenes. The colour behind the clock matches the sky while the scene is on screen.</p>
+    </div>
+  </div>
+  <div class="gap">
+    <div class="tile"><h3>Haptics</h3><p>A tick on controls, a double pulse when you log a saving, a firmer one when you delete.</p></div>
+    <div class="tile"><h3>Motion with a purpose</h3><p>The tab highlight glides and swells slightly. A surprise reveal unblurs the scene. All of it respects Reduce Motion.</p></div>
+    <div class="tile"><h3>Honest small print</h3><p>"Recent fare", "Bagsy's estimate" and "may not include a hold bag", shown wherever a price appears.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="two">
+    <div>
+      <h2>What it shows about design teams</h2>
+      <p class="quote">The work moves from making things to deciding what's good enough, and saying no quickly.</p>
+    </div>
+    <div>
+      <p>With AI as the team, a design leader's job doesn't shrink. It concentrates. Setting guardrails up front, judging real screens on a real phone, and catching what's plausible but wrong were the parts that mattered.</p>
+      <p>Making things got cheap, so the scarce skills were taste, clear principles, and knowing which trade-offs touch trust. That's where I'd expect design teams to be heading too.</p>
+      <p class="muted">Where it could go: a share of booking commissions if people book through it. Bagsy itself stays free because it never touches money.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>What's next</h2>
+  <div class="next">
+    <div class="tile"><span class="no">01</span><h3>More couples</h3><p>Get 5 to 10 couples using it and learn where it breaks for people who aren't me.</p></div>
+    <div class="tile"><span class="no">02</span><h3>Decide together</h3><p>Both people like or pass on ideas, and a match becomes the trip.</p></div>
+    <div class="tile"><span class="no">03</span><h3>Ideas inside each part</h3><p>Restaurants for the dinner budget, days out for the tickets part, once you know where you're going.</p></div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">Paul Riley · Bagsy Trips · Sample data shown in all screens.</footer>
+</body>
+</html>
