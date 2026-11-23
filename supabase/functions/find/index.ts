@@ -65,14 +65,20 @@ Use the IATA code of the main airport or city that UK flights actually go to.`;
           },
         },
       }],
-      tool_choice: { type: 'tool', name: 'ideas' },
-      messages: [{ role: 'user', content: prompt }],
+      tool_choice: { type: 'auto' },
+      messages: [{ role: 'user', content: prompt + '\n\nAnswer only by calling the ideas tool.' }],
     }),
   });
   const j = await r.json();
   if (!r.ok) throw new Error('AI: ' + (j?.error?.message || r.status));
-  const out = (j.content || []).find((c: any) => c.type === 'tool_use')?.input?.ideas || [];
-  return out.filter((c: Cand) => /^[A-Z]{3}$/.test(String(c.iata || '').toUpperCase())).map((c: Cand) => ({ ...c, iata: c.iata.toUpperCase(), kind: KINDS.includes(c.kind) ? c.kind : 'coast' }));
+  let out = (j.content || []).find((c: any) => c.type === 'tool_use')?.input?.ideas;
+  if (!out) { // fallback: the model answered in text; pull the JSON out of it
+    const txt = (j.content || []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n');
+    const m = txt.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    try { const p = m ? JSON.parse(m[0]) : null; out = Array.isArray(p) ? p : p?.ideas; } catch { out = null; }
+  }
+  out = out || [];
+  return (out as Cand[]).filter((c: Cand) => /^[A-Z]{3}$/.test(String(c.iata || '').toUpperCase())).map((c: Cand) => ({ ...c, iata: c.iata.toUpperCase(), kind: KINDS.includes(c.kind) ? c.kind : 'coast' }));
 }
 
 /* ---------- real flight prices (Travelpayouts / Aviasales data, cached from recent searches) ---------- */
