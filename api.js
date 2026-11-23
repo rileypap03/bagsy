@@ -27,6 +27,9 @@ function realApi(){
     async testPush(){ const { data:{ session } } = await sb.auth.getSession();
       const r = await fetch(cfg.supabaseUrl + '/functions/v1/push', { method:'POST', headers:{ 'Content-Type':'application/json', apikey:cfg.supabaseAnonKey, Authorization:'Bearer ' + (session && session.access_token) }, body:JSON.stringify({ type:'test' }) });
       const j = await r.json().catch(()=>({})); if(!r.ok || j.error) throw new Error(j.error || ('The notification server answered ' + r.status)); return j.sent || 0; },
+    async findIdeas(ask){ const { data:{ session } } = await sb.auth.getSession();
+      const r = await fetch(cfg.supabaseUrl + '/functions/v1/find', { method:'POST', headers:{ 'Content-Type':'application/json', apikey:cfg.supabaseAnonKey, Authorization:'Bearer ' + (session && session.access_token) }, body:JSON.stringify(ask) });
+      const j = await r.json().catch(()=>({})); if(!r.ok || j.error) throw new Error(j.error || (r.status===404?'The finder isn’t switched on yet.':'The finder answered ' + r.status)); return j; },
     async load(uid){
       const [profiles, trips, members, parts, logs, replies, activity] = await Promise.all([
         sb.from('profiles').select('*'), sb.from('trips').select('*').order('start_date'), sb.from('trip_members').select('*'),
@@ -88,6 +91,16 @@ function previewApi(){
     async newPassword(password){ await wait(); const u=db.users.find(x=>x.id===me()); if(u) u.password=password; save(); },
     async pushKey(){ return ''; },
     async savePush(){}, async dropPush(){}, async testPush(){ throw new Error('Notifications only work in the real app.'); },
+    async findIdeas(ask){ need(); await new Promise(r=>setTimeout(r,1500));
+      const n=ask.nights||7, ppl=ask.people||2, d=new Date(ask.month+'-01T00:00:00Z'); while(d.getUTCDay()!==5) d.setUTCDate(d.getUTCDate()+1); const start=d.toISOString().slice(0,10);
+      const mk=(place,country,iata,kind,why,weather,fl,night,daily,live)=>{ const stay=Math.round(night*n/(ppl===1?1:2)), sp=daily*n, total=fl+stay+sp;
+        return { place,country,iata,kind,why,weather,start,nights:n, flight:{pp:fl,live,direct:live,airline:live?'EZY':'',link:'https://www.aviasales.com/'}, stay:{night,pp:stay}, spend:{daily,pp:sp}, total, over:Math.max(0,total-ask.budget) }; };
+      const ideas=[ mk('Tenerife','Spain','TFS','tropical','Reliable sun and a short-ish flight, with quiet towns away from the strip','22°C, mostly sunny',149,60,25,true),
+        mk('Madeira','Portugal','FNC','mountains','Mild and green, great walks along the levadas and good food','19°C, some cloud',168,62,26,true),
+        mk('Paphos','Cyprus','PFO','coast','Harbour town with old ruins and warm afternoons','18°C, sunny spells',198,70,30,true),
+        mk('Marrakech','Morocco','RAK','desert','Warm days, riads and souks, and cheap to eat well','20°C, dry and sunny',156,55,24,false),
+        mk('Lanzarote','Spain','ACE','coast','Calmer than Tenerife, volcanic scenery and beaches','21°C, sunny',231,95,42,true) ].sort((a,b)=>a.over-b.over||b.total-a.total);
+      return { ideas, asked:ask, inBudget:ideas.filter(i=>!i.over).length }; },
     async load(){
       need(); await wait();
       const tripIds = new Set(db.trip_members.filter(m=>m.user_id===me()).map(m=>m.trip_id));

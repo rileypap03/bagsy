@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='a09f958d';
+window.BAGSY_VERSION='cf3694e9';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -181,11 +181,13 @@ function render(){
   else {
     const sc=UI.screen;
     if(sc.name==='plan'&&!plan) UI.screen={name:'tabs'};
+    if(sc.name==='find'&&!find) UI.screen={name:'tabs'};
     if(UI.screen.name==='trip'&&!trip(UI.screen.id)) UI.screen={name:'tabs'};
     if(UI.screen.name==='tabs'&&UI.tab==='trips') setTimeout(checkReveal,0);
     if(UI.screen.name==='tabs'){ view.innerHTML = UI.tab==='trips'?trips():UI.tab==='activity'?activity():you(); chrome=tabbar(); }
     else if(UI.screen.name==='trip') view.innerHTML = tripView(trip(UI.screen.id));
     else if(UI.screen.name==='plan'){ const r=planView(); view.innerHTML=r.main; chrome=`<div class="bottom">${r.bottom}</div>`; }
+    else if(UI.screen.name==='find'){ const r=findView(); view.innerHTML=r.main; if(r.bottom) chrome=`<div class="bottom">${r.bottom}</div>`; }
     const pending = ls.get('bagsy-join', null);
     if(pending && !sheet){ sheet={type:'join',code:pending,preview:undefined}; ls.set('bagsy-join',null); loadInvite(sheet); }
   }
@@ -237,7 +239,7 @@ function trips(){
   const live=A.trips.filter(t=>tripEnd(t)>=TODAY), past=A.trips.filter(t=>tripEnd(t)<TODAY), checks=dueChecks();
   let h=`<div class="pad">${banner()}<div class="top"><h1>Trips</h1><button class="round" data-act="plan" aria-label="Plan a trip">${I(IC.plus,18,2.4)}</button></div>`;
   h+=forMeCards();
-  if(!live.length) h+=`<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h1 style="font-size:24px">Where to next?</h1><p class="muted" style="margin:0">Plan a trip, split it into parts, and invite the person you’re going with.</p><button class="btn" data-act="plan">Plan a trip</button></div>`;
+  if(!live.length) h+=`<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h1 style="font-size:24px">Where to next?</h1><p class="muted" style="margin:0">Plan a trip, split it into parts, and invite the person you’re going with.</p><button class="btn" data-act="plan">Plan a trip</button><button class="btn sec" data-act="find">Help me choose where</button></div>`;
   else { h+=`<h2>Coming up</h2>`; for(const t of live){ const tot=total(t),sv=savedOf(t),pct=tot?Math.round(sv/tot*100):0, pt=partnerOf(t);
     h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div class="scenehead" style="${sceneBg(t)}">${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:10px;top:6px;display:flex;gap:2px">${[user.id].concat(pt?[pt.id]:[]).map(p=>av(p,44,t)).join('')}</span></div>
     <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px"><div class="row" style="align-items:flex-end"><div class="col"><span class="cap muted">${tripDates(t)} · ${weeksTo(t.start)} weeks to go</span><span style="font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.03em">${money(sv)} <span class="muted" style="font-size:15px;font-weight:500;letter-spacing:0">of ${money(tot)}</span></span></div><span class="sm b ok" style="padding-bottom:4px">${pct}% covered</span></div>
@@ -245,7 +247,7 @@ function trips(){
     ${t.surprise?`<span class="notice" style="padding:10px 12px;align-items:center">🎁 <span class="b" style="color:var(--ink)">Surprise${t.sur&&t.sur.to_user?' for '+esc(nameOf(t,t.sur.to_user)):''}</span> ${t.sur&&t.sur.revealed_at?'Revealed':t.sur&&t.sur.save_date_at?'Save the date sent':'Still a secret'}</span>`:''}
     ${pt&&!pt.joined?`<span class="notice" style="padding:10px 12px;align-items:center"><span class="b" style="color:var(--ink)">Invite ${esc(pt.name)}</span> They haven’t joined yet</span>`:''}
     ${checks.filter(c=>c.trip===t.id).map(c=>`<span class="notice" style="padding:10px 12px;align-items:center"><span class="b" style="color:var(--ink)">Did ${money(c.amt)} go in?</span> ${esc((t.parts.find(p=>p.id===c.part)||{}).name)}</span>`).join('')}</div></button>`; } }
-  h+=`${live.length?`<button class="dash" data-act="plan">${I(IC.plus,16,2.4)} Plan another trip</button>`:''}<button class="link" data-act="enterCode" style="align-self:center">Got an invite code?</button>`;
+  h+=`${live.length?`<button class="dash" data-act="plan">${I(IC.plus,16,2.4)} Plan another trip</button><button class="link" data-act="find" style="align-self:center;padding:4px 0 0">Not sure where? Find ideas</button>`:''}<button class="link" data-act="enterCode" style="align-self:center">Got an invite code?</button>`;
   h+=`<h2>Been and gone</h2>`+(past.length?past.map(t=>`<button class="card row" data-open="${t.id}" style="border:0;text-align:left;width:100%"><span class="ico" style="border-radius:22px">${I(IC.trips,22,2)}</span><span class="col"><span class="b">${esc(t.place)}</span><span class="cap muted">${tripDates(t)}</span></span><span class="b">${money(savedOf(t))}</span></button>`).join(''):`<p class="sm muted" style="margin:0 8px">Finished trips land here, with what each part really cost.</p>`);
   return h+`</div>`;
 }
@@ -370,6 +372,7 @@ function planView(){
     const kind = sceneKind({place:P.place,kind:P.kind}), preset = false;
     const short=P.type==='short', ideas=short?dateIdeas():[], co=coMembers();
     body=`<div style="padding:4px 8px 0"><h1>${P.surprise?'Where are you taking them?':'Where are you going?'}</h1><p class="muted" style="margin:6px 0 0">${P.surprise?'Plan it in secret. They only see it when you’re ready.':'Plan it now. You’ll invite the other person at the end.'}</p></div>
+    ${P.fromIdea?`<div class="notice">${I(IC.bulb,20,2)}<span>Filled in from your idea, with rough costs for each part. Change anything you like.</span></div>`:P.place.trim()?'':`<button class="card row" data-act="findFromPlan" style="border:0;text-align:left;width:100%;gap:12px">${partIcon('Package holiday')}<span class="col" style="flex:1"><span class="b">Not sure where yet?</span><span class="cap muted">Find places that fit your budget, with real flight prices</span></span>${I('M9 18l6-6-6-6',18,2.4)}</button>`}
     <div class="seg" role="group" aria-label="Kind of trip">${[['holiday','Holiday'],['short','Short break']].map(([k,l])=>`<button data-ttype="${k}" aria-pressed="${(P.type||'holiday')===k}">${l}</button>`).join('')}</div>
     <div class="card" style="display:flex;flex-direction:column;gap:14px"><label class="b" for="place">Where</label><input id="place" class="field" value="${esc(P.place)}" placeholder="A city or somewhere warm" autocomplete="off"><div class="chips">${PLACES.map(p=>`<button class="chip" data-place="${p}" aria-pressed="${P.place===p}">${p}</button>`).join('')}</div>
     <div id="scenePrev" class="scenebox" style="${sceneBg({place:P.place,kind:P.kind})}">${scene({place:P.place,kind:P.kind})}</div>
@@ -426,6 +429,61 @@ function startPlan(){
   UI.screen={name:'plan'}; render(); view.scrollTop=0;
 }
 function fixDues(){ plan.parts.forEach(p=>{ p.due=partDue(p.name,plan.start); }); }
+/* ---------- holiday finder: "winter sun in Feb, £600 each" → places that fit, with real flight prices ---------- */
+const VIBES = [['Winter sun','winter sun, warm and sunny'],['Beach','a beach holiday'],['City break','a city break with good food'],['Mountains','mountains and walking'],['Snow','snow, skiing or a winter wonderland'],['Countryside','countryside, slow and quiet'],['Surprise us','anywhere good value that suits the season']];
+const FROM = [['LON','London'],['MAN','Manchester'],['BHX','Birmingham'],['BRS','Bristol'],['EDI','Edinburgh'],['GLA','Glasgow'],['LBA','Leeds Bradford'],['NCL','Newcastle'],['LPL','Liverpool'],['EMA','East Midlands']];
+let find=null;
+function findMonths(){ const out=[]; for(let i=1;i<=12;i++){ const d=new Date(Date.UTC(TODAY.getUTCFullYear(),TODAY.getUTCMonth()+i,1)); out.push([iso(d).slice(0,7), MN[d.getUTCMonth()]+(d.getUTCFullYear()!==TODAY.getUTCFullYear()?' ’'+String(d.getUTCFullYear()).slice(2):'')]); } return out; }
+function openFind(){
+  const last=ls.get('bagsy-find',{}), months=findMonths();
+  find={ step:'ask', vibe:last.vibe||'Winter sun', month:months.some(m=>m[0]===last.month)?last.month:months[2][0], nights:last.nights||7, from:last.from||'LON', budget:last.budget||600, people:last.people||2, notes:'', res:null, err:'' };
+  UI.screen={name:'find'}; render(); view.scrollTop=0;
+}
+async function runFind(){
+  const F=find; F.step='busy'; F.err=''; render(); view.scrollTop=0;
+  ls.set('bagsy-find',{ vibe:F.vibe, month:F.month, nights:F.nights, from:F.from, budget:F.budget, people:F.people });
+  try{ const v=VIBES.find(x=>x[0]===F.vibe)||VIBES[0], o=FROM.find(x=>x[0]===F.from)||FROM[0];
+    F.res=await api.findIdeas({ vibe:v[1], month:F.month, nights:F.nights, origin:o[0], originName:o[1], budget:+F.budget||600, people:F.people, notes:F.notes.trim() });
+    if(find!==F) return; F.step='ideas'; buzz('success');
+  }catch(e){ if(find!==F) return; console.error(e); F.step='ask'; F.err=friendly(e); }
+  render(); view.scrollTop=0;
+}
+const monthsTo = d => Math.max(1, Math.round((D(d)-TODAY)/(30.44*DAY)));
+function findView(){
+  const F=find, head=t=>`<div class="row" style="justify-content:space-between;height:52px;padding:0 4px"><button class="round" data-act="findBack" aria-label="Back">${I(IC.back)}</button><span class="b" style="font-size:16px">${t}</span><span style="width:44px"></span></div>`;
+  if(F.step==='busy') return { main:`<div class="pad">${head('Finding ideas')}<div class="center" style="min-height:60vh;gap:14px;text-align:center"><span class="spin"></span><p class="b" style="margin:0;font-size:17px">Looking at places and flight prices</p><p class="muted" style="margin:0;max-width:280px">${esc(F.vibe)} in ${esc((findMonths().find(m=>m[0]===F.month)||['',''])[1])}, about ${money(F.budget)} ${F.people>1?'each':''}. This takes about 20 seconds.</p></div></div>`, bottom:'' };
+  if(F.step==='ideas'){
+    const r=F.res, ideas=r.ideas||[], each=F.people>1?' each':'';
+    let h=`<div class="pad" style="padding-bottom:40px">${head('Ideas')}<div style="padding:4px 8px 0"><h1>${!ideas.length?'Nothing found this time':r.inBudget?`${Math.min(r.inBudget,ideas.length)} idea${Math.min(r.inBudget,ideas.length)===1?'':'s'} for ${money(F.budget)}${each}`:`Nothing quite fits ${money(F.budget)}${each}`}</h1>${ideas.length&&!r.inBudget?`<p style="margin:6px 0 0">These are the closest. Try a bit more budget, fewer nights or another month.</p>`:''}${!ideas.length?`<p style="margin:6px 0 0">Try another month or a different kind of trip.</p>`:''}<p class="muted" style="margin:6px 0 0">${esc(F.vibe)} · ${esc((findMonths().find(m=>m[0]===F.month)||['',''])[1])} · ${F.nights} nights from ${esc((FROM.find(x=>x[0]===F.from)||FROM[0])[1])}</p></div>`;
+    ideas.forEach((x,i)=>{ const pm=Math.ceil(x.total/monthsTo(x.start));
+      h+=`<div class="card" style="padding:0;overflow:hidden"><div class="scenehead" style="${sceneBg(x)}">${scene(x)}<span class="pill" style="position:absolute;left:12px;top:12px">${flag(x)}${esc(x.place)}</span>${x.over?`<span class="pill" style="position:absolute;right:12px;top:12px;padding:0 12px;color:var(--behind)">${money(x.over)} over</span>`:''}</div>
+      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px"><div class="col"><span class="cap muted">${esc(x.country)} · ${esc(x.weather)}</span><span style="margin-top:4px">${esc(x.why)}</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line-subtle);padding-top:12px">
+      ${[['Flights',x.flight.pp,x.flight.live?`${x.flight.direct?'Direct, ':''}recent fare`:'Bagsy’s estimate'],['Stay',x.stay.pp,`${money(x.stay.night)} a night${F.people>1?', your half':''}`],['Spending money',x.spend.pp,`${money(x.spend.daily)} a day, food and fun`]].map(([n,v,c])=>`<div class="row" style="gap:12px">${partIcon(n)}<span class="col" style="flex:1"><span class="b">${n}</span><span class="cap muted">${c}</span></span><span class="b">${money(v)}</span></div>`).join('')}</div>
+      <div class="row" style="align-items:flex-end;border-top:1px solid var(--line-subtle);padding-top:12px"><div class="col"><span class="cap muted">${tripDates({start:x.start,nights:x.nights})}</span><span style="font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.03em">${money(x.total)}<span class="muted" style="font-size:15px;font-weight:500;letter-spacing:0">${each}</span></span></div><span class="sm b" style="padding-bottom:4px">${money(pm)} a month${each}</span></div>
+      <button class="btn" data-pick="${i}">Plan this trip</button><a class="link" href="${esc(x.flight.link)}" target="_blank" rel="noopener" style="align-self:center;padding:4px 0">Check flights ↗</a></div></div>`; });
+    h+=`<p class="cap muted" style="margin:0 8px">Flight prices are recent fares found on Aviasales; stay and spending money are Bagsy’s estimates. Prices change, so check before you book. Bagsy never books or takes payment.</p><button class="dash" data-act="findAgain">Change what you’re looking for</button></div>`;
+    return { main:h, bottom:'' };
+  }
+  const months=findMonths();
+  const main=`<div class="pad" style="padding-bottom:200px">${head('Find a trip')}<div style="padding:4px 8px 0"><h1>Not sure where yet?</h1><p class="muted" style="margin:6px 0 0">Say what you fancy and what you can spend. Bagsy suggests places that fit, with real flight prices.</p></div>
+  ${F.err?`<div class="notice" style="background:#FDECEC;color:var(--behind)">${I(IC.warn,20,2)}<span>${esc(F.err)}</span></div>`:''}
+  <div class="card" style="display:flex;flex-direction:column;gap:14px"><span class="b">What do you fancy?</span><div class="chips" role="group" aria-label="What you fancy">${VIBES.map(([k])=>`<button class="chip" data-fvibe="${k}" aria-pressed="${F.vibe===k}">${k}</button>`).join('')}</div>
+  <label class="cap muted" for="fnotes">Anything else? Optional</label><input id="fnotes" class="field" value="${esc(F.notes)}" placeholder="No long flights, good food, quiet…" autocomplete="off"></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:14px"><span class="b">When</span><div class="chips" role="group" aria-label="Month">${months.map(([k,l])=>`<button class="chip" data-fmonth="${k}" aria-pressed="${F.month===k}">${l}</button>`).join('')}</div>
+  <div class="row"><span class="col"><span class="b">Nights</span><span class="cap muted">Roughly is fine</span></span><div class="stepper" style="padding:0;background:none"><button data-fnights="-1" aria-label="One less night">−</button><span class="b" style="min-width:28px;text-align:center;font-size:17px" aria-live="polite">${F.nights}</span><button data-fnights="1" aria-label="One more night">+</button></div></div></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:14px"><span class="b">Flying from</span><div class="chips" role="group" aria-label="Flying from">${FROM.map(([k,l])=>`<button class="chip" data-ffrom="${k}" aria-pressed="${F.from===k}">${l}</button>`).join('')}</div></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="seg" role="group" aria-label="Who’s going">${[[2,'Two of us'],[1,'Just me']].map(([k,l])=>`<button data-fpeople="${k}" aria-pressed="${F.people===k}">${l}</button>`).join('')}</div>
+  <label class="col" for="fbudget"><span class="b">Budget${F.people>1?' per person':''}</span><span class="cap muted">All in: flights, ${F.people>1?'your half of the room':'the room'}, food and spending money</span></label><div class="money"><span class="b muted">£</span><input id="fbudget" inputmode="numeric" enterkeyhint="done" value="${esc(F.budget)}" placeholder="600" aria-label="Budget"></div></div></div>`;
+  return { main, bottom:`<button class="btn" data-act="findGo" ${+F.budget>=50?'':'disabled'}>Find ideas</button>` };
+}
+function planFromIdea(x){
+  const ppl=find?find.people:2; startPlan();
+  Object.assign(plan,{ place:x.place, kind:x.kind, start:x.start, nights:x.nights, withPartner:ppl>1, fromIdea:true });
+  const cost={ 'Flights':x.flight.pp*ppl, 'Stay':x.stay.night*x.nights, 'Spending money':x.spend.pp*ppl };
+  plan.parts.forEach(p=>{ p.on=p.name in cost; if(p.on) p.cost=String(Math.round(cost[p.name])); });
+  fixDues(); find=null; render(); view.scrollTop=0;
+}
 async function createTrip(){
   if(busy) return; busy=true; render();
   const P=plan, chosen=P.parts.filter(p=>p.on);
@@ -607,6 +665,12 @@ document.addEventListener('click',async e=>{
   if(ds.amt){ const s=sheet, t=trip(s.trip), p=t.parts.find(x=>x.id===s.part); const cur=s.draft.amt||suggest(p,s.draft.freq); s.draft.amt=Math.max(1,cur+(+ds.amt)); renderLayer(); return; }
   if(ds.yes){ const c=dueChecks().find(x=>x.part===ds.yes&&x.due===ds.due); if(c) logSaving(c.trip,c.part,c.amt,c.due); return; }
   if(ds.notyet){ const c=dueChecks().find(x=>x.part===ds.notyet&&x.due===ds.due); if(!c) return; try{ await api.reply(c.trip,c.part,c.due,'notyet'); await reload(); showToast('No problem. We’ll ask again on Monday.', async()=>{ await api.deleteReply(c.part,c.due); await reload(); }); }catch(err){ fail(err); } return; }
+  if(ds.fvibe&&find){ find.vibe=ds.fvibe; render(); return; }
+  if(ds.fmonth&&find){ find.month=ds.fmonth; render(); return; }
+  if(ds.ffrom&&find){ find.from=ds.ffrom; render(); return; }
+  if(ds.fpeople&&find){ find.people=+ds.fpeople; render(); return; }
+  if(ds.fnights&&find){ find.nights=Math.min(21,Math.max(1,find.nights+(+ds.fnights))); render(); return; }
+  if(ds.pick&&find&&find.res){ const x=find.res.ideas[+ds.pick]; if(x) planFromIdea(x); return; }
   if(ds.ttype&&plan){ setPlanType(ds.ttype); render(); return; }
   if(ds.idea&&plan){ plan.start=ds.idea; plan.nights=+ds.in; fixDues(); render(); return; }
   if(ds.sfor&&plan){ plan.forUser=plan.forUser===ds.sfor?null:ds.sfor; render(); return; }
@@ -655,6 +719,11 @@ document.addEventListener('click',async e=>{
     case 'editMe': sheet={type:'avatar',name:me().name,draft:bagOf(user.id,me().avatar)}; renderLayer(); break;
     case 'saveMe': { const nm=(document.getElementById('nm2').value||'').trim()||me().name; busy=true; renderLayer(); try{ await api.saveProfile(user.id,{ name:nm, avatar:sheet.draft }); busy=false; sheet=null; await reload(); showToast('Saved. Your trip partner sees your bag.'); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
     case 'plan': startPlan(); break;
+    case 'find': openFind(); break;
+    case 'findBack': if(find&&find.step==='ideas'){ find.step='ask'; render(); view.scrollTop=0; } else { const back=find&&find.fromPlan; find=null; if(back&&plan) UI.screen={name:'plan'}; else UI.screen={name:'tabs'}; render(); view.scrollTop=0; } break;
+    case 'findGo': runFind(); break;
+    case 'findAgain': find.step='ask'; render(); view.scrollTop=0; break;
+    case 'findFromPlan': openFind(); find.fromPlan=true; break;
     case 'home': UI.screen={name:'tabs'}; UI.tab='trips'; render(); break;
     case 'planback': if(plan.step>1){ plan.step--; render(); } else { plan=null; UI.screen={name:'tabs'}; render(); } view.scrollTop=0; break;
     case 'planNext': if(plan.step===1) fixDues(); plan.step++; render(); view.scrollTop=0; break;
@@ -716,6 +785,8 @@ document.addEventListener('click',async e=>{
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='place'&&plan){ plan.place=t.value; plan.kind=null; const b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!(t.value.trim()&&(!plan.withPartner||plan.partnerName.trim())); document.querySelectorAll('[data-place]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.place===t.value)); const sp=document.getElementById('scenePrev'); if(sp){ sp.innerHTML=scene({place:t.value}); sp.setAttribute('style',sceneBg({place:t.value})); } document.querySelectorAll('[data-kind]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.kind===sceneKind({place:t.value}))); }
+  if(t.id==='fbudget'&&find){ find.budget=t.value.replace(/[^\d]/g,''); const b=document.querySelector('[data-act=findGo]'); if(b) b.disabled=!(+find.budget>=50); }
+  if(t.id==='fnotes'&&find){ find.notes=t.value; }
   if(t.id==='pname'&&plan){ plan.partnerName=t.value; const b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!(plan.place.trim()&&t.value.trim()); }
   if(t.id==='start'&&plan&&t.value) plan.start=t.value;
   if(t.dataset.cost!==undefined&&plan){ plan.parts[+t.dataset.cost].cost=t.value.replace(/[^\d]/g,''); const ch=plan.parts.filter(p=>p.on), tot=ch.reduce((s,p)=>s+(+p.cost||0),0); const el=document.getElementById('planTotal'); if(el) el.textContent=money(tot); const w=document.getElementById('planWeek'); if(w) w.textContent=money(Math.ceil(tot/Math.max(1,weeksTo(plan.start))))+' a week'; const ok=ch.length&&ch.every(p=>+p.cost>0), b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!ok; const hn=document.getElementById('costHint'); if(hn) hn.style.display=ok?'none':''; }
@@ -750,6 +821,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&(e.target.id==='email'||e.target.id==='pw')) document.querySelector('[data-act=auth]')?.click();
   if(e.key==='Enter'&&e.target.id==='samt') e.target.blur();
   if(e.key==='Enter'&&e.target.id==='elamt') document.querySelector('[data-act=saveLog]')?.click();
+  if(e.key==='Enter'&&e.target.id==='fbudget'){ e.target.blur(); }
   if(e.key==='Enter'&&e.target.id==='joinCode') document.querySelector('[data-act=lookupCode]')?.click();
 });
 /* keep both phones in step: refresh when the app comes back to the front, and every 30 seconds while open */
