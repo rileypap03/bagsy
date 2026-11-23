@@ -152,7 +152,7 @@ function render(){
   }
   document.getElementById('chrome').innerHTML=chrome;
   const tp=document.querySelector('#chrome .tpill');
-  if(tp){ const to=TABS.indexOf(UI.tab); if(lastTabIdx>=0&&lastTabIdx!==to){ tp.getBoundingClientRect(); requestAnimationFrame(()=>tp.style.setProperty('--i',to)); const cur=document.querySelector('#chrome .tab[aria-current=page]'); if(cur) cur.classList.add('pop'); } else tp.style.setProperty('--i',to); lastTabIdx=to; }
+  if(tp){ const to=TABS.indexOf(UI.tab); if(lastTabIdx>=0&&lastTabIdx!==to){ tp.getBoundingClientRect(); requestAnimationFrame(()=>{ tp.style.setProperty('--i',to); tp.classList.add('grow'); }); const cur=document.querySelector('#chrome .tab[aria-current=page]'); if(cur) cur.classList.add('pop'); } else tp.style.setProperty('--i',to); lastTabIdx=to; }
   else lastTabIdx=-1;
   if(navigator.setAppBadge){ const n=user&&A?dueChecks().length:0; (n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(()=>{}); }
   renderLayer();
