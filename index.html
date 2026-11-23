@@ -151,7 +151,7 @@ details summary::-webkit-details-marker{display:none}
 html,body{background:var(--surface-page)}   /* light grey from the start: Safari and the home-screen app colour the status bar from this */
 html.app,html.app body{background:var(--surface-page)}
 @media(min-width:520px){html,body,html.app,html.app body{background:#2A2C30}}
-.splash .skip{top:16px}
+.splash .skip{top:calc(env(safe-area-inset-top) + 16px)}
 /* deposit marker on a part's progress bar */
 .depmark{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--brass-darkest);border-radius:1px}
 .bar:has(.depmark){overflow:visible}
@@ -284,10 +284,11 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 #phone:has(#chrome .bottom) .toast{bottom:calc(124px + env(safe-area-inset-bottom))}
 @keyframes toastIn{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.toast{animation:none}}
-/* splash: lift the case and logo so the pair sits around the middle of the screen; fill the space it leaves with the video's own yellow */
+/* splash: video's own yellow behind it while it loads */
 .splash{background:linear-gradient(#F0B64A,#E9AF45);overflow:hidden}
-.splash video{transition:transform .8s cubic-bezier(.45,0,.2,1)}
-.splash video.lift,.splash img{transform:translateY(-13%)}
+/* the video fills the whole screen, behind the clock too, so there's no separate strip to mismatch */
+.splash{top:0}
+body:has(#splash) #topbar{background:transparent!important}
 
 </style>
 </head>

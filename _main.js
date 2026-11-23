@@ -556,9 +556,7 @@ function showSplash(){
   const el=document.createElement('div'); el.className='splash'; el.id='splash';
   el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video>`;
   document.getElementById('phone').appendChild(el); topCol=''; topTint();
-  const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash;
-  // the trip parts fall in from the top of the frame, so only lift the shot once the lid is shutting and the logo arrives
-  v.addEventListener('timeupdate',()=>{ if(v.currentTime>=2.3) v.classList.add('lift'); }); v.onerror=()=>setTimeout(endSplash,800);
+  const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash; v.onerror=()=>setTimeout(endSplash,800);
   /* if the phone won't autoplay (Low Power Mode does this), show the finished splash still for a moment instead of a play button */
   let still=false; const fallback=()=>{ if(still||splashSeen) return; still=true; v.remove(); const im=document.createElement('img'); im.src='img/splash-end.jpg'; im.alt=''; im.style.cssText='width:100%;height:100%;object-fit:cover'; el.insertBefore(im,el.firstChild); setTimeout(endSplash,1100); };
   const go=()=>v.play().catch(fallback); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) fallback(); },900); setTimeout(endSplash,7000);
