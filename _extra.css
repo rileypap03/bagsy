@@ -127,8 +127,8 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 .irow-scroll::-webkit-scrollbar{display:none}
 .icard{flex:none;width:calc(100% - 64px);max-width:360px;scroll-snap-align:start;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 8px 28px rgba(17,18,20,.10),0 1px 2px rgba(17,18,20,.04);display:flex;flex-direction:column}
 .ibody{padding:14px 16px 6px;display:flex;flex-direction:column;gap:12px;flex:1}
-.ibar{display:flex;gap:3px;height:10px}
-.ibar span{border-radius:2px}.ibar span:first-child{border-radius:5px 2px 2px 5px}.ibar span:last-child{border-radius:2px 5px 5px 2px}
+.ibar{display:flex;gap:3px;height:6px}
+.ibar span{border-radius:3px}
 .irow{gap:10px;font-size:15px}
 .idot{width:10px;height:10px;border-radius:5px;flex:none}
 .idots{display:flex;gap:6px;justify-content:center}

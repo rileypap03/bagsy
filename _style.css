@@ -40,7 +40,7 @@ button{cursor:pointer}
 .av.P{background:var(--yellow)}.av.I{background:#EADBC0;color:var(--brass-darkest)}
 .bar{height:6px;background:var(--track);border-radius:3px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--brass);border-radius:3px}
 .split{display:flex;gap:3px;height:6px}.split>span{border-radius:3px;overflow:hidden;background:rgba(255,255,255,.22)}.split>span>i{display:block;height:100%;background:#fff}
-.splitc{display:flex;gap:3px;height:8px}.splitc>span{border-radius:4px}
+.splitc{display:flex;gap:3px;height:6px}.splitc>span{border-radius:3px}
 .notice{background:var(--yellow-soft);border-radius:12px;padding:12px;display:flex;gap:12px;color:var(--notice-ink);font-size:14px;line-height:20px}
 .notice svg{flex:none;color:var(--notice-icon)}
 .divider{height:1px;background:var(--line-subtle);margin:0 -16px}
