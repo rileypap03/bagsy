@@ -145,7 +145,9 @@ function render(){
     if(UI.screen.name==='trip'&&!trip(UI.screen.id)) UI.screen={name:'tabs'};
     if(UI.screen.name==='tabs'&&UI.tab==='trips') setTimeout(checkReveal,0);
     if(UI.screen.name==='tabs'){ view.innerHTML = UI.tab==='trips'?trips():UI.tab==='activity'?activity():you(); chrome=tabbar(); }
-    else if(UI.screen.name==='trip') view.innerHTML = tripView(trip(UI.screen.id));
+    else if(UI.screen.name==='trip'){ const t=trip(UI.screen.id); view.innerHTML = tripView(t);
+      // compact bar that slides in once the scene has scrolled away, so Back and Settings are always in reach
+      chrome=`<div class="minibar" aria-hidden="true" inert><button class="round" data-act="home" aria-label="Back">${I(IC.back)}</button><span class="b minititle">${flag(t)}${esc(t.place)}</span><button class="round" data-act="tripSettings" aria-label="Trip settings">${I(IC.gear,18,2)}</button></div>`; }
     else if(UI.screen.name==='plan'){ const r=planView(); view.innerHTML=r.main; chrome=`<div class="bottom">${r.bottom}</div>`; }
     else if(UI.screen.name==='find'){ const r=findView(); view.innerHTML=r.main; if(r.bottom) chrome=`<div class="bottom">${r.bottom}</div>`; }
     const pending = ls.get('bagsy-join', null);
@@ -896,11 +898,14 @@ new MutationObserver(()=>segSync(document)).observe(document.documentElement,{ch
 
 // Status bar colour follows the page: the trip's sky while its scene is at the top, light grey once you scroll past.
 // iOS 26 Safari ignores theme-color and tints the status bar from a fixed element at the top, so we keep one there.
+function miniBar(){ const mb=document.querySelector('#chrome .minibar'), m=document.querySelector('#view .mast'); if(!mb||!m) return;
+  const show=m.getBoundingClientRect().bottom<80; if(show===mb.classList.contains('on')) return;
+  mb.classList.toggle('on',show); if(show){ mb.removeAttribute('inert'); mb.removeAttribute('aria-hidden'); } else { mb.setAttribute('inert',''); mb.setAttribute('aria-hidden','true'); } }
 function topTint(){ const bar=document.getElementById('topbar'); if(!bar) return; const m=document.querySelector('#view .mast'); let c='#F1F3F2';
   if(document.getElementById('splash')&&!splashSeen) c='#E9BE4E'; // match the splash so there's no seam
   if(m&&m.dataset.sky){ const r=m.getBoundingClientRect(); if(r.bottom>bar.offsetHeight+60) c=m.dataset.sky; }
   if(c===topCol) return; topCol=c; bar.style.background=c; const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); }
-document.getElementById('view').addEventListener('scroll',topTint,{passive:true});
+document.getElementById('view').addEventListener('scroll',()=>{ topTint(); miniBar(); },{passive:true});
 new MutationObserver(topTint).observe(document.getElementById('view'),{childList:true});
 topTint();
 

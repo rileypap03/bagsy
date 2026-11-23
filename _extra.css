@@ -150,3 +150,9 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 .sent .sentbag{animation:sentHop .9s cubic-bezier(.34,1.56,.64,1) .1s both}
 @keyframes sentHop{0%{transform:translateY(12px) scale(.9);opacity:0}60%{transform:translateY(-6px) scale(1.03);opacity:1}100%{transform:none}}
 @media (prefers-reduced-motion: reduce){.sent .sentbag{animation:none}}
+/* trip view: compact bar once the scene has scrolled away */
+.minibar{position:fixed;left:0;right:0;top:max(env(safe-area-inset-top),12px);z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(241,243,242,.86);-webkit-backdrop-filter:blur(16px) saturate(1.6);backdrop-filter:blur(16px) saturate(1.6);border-bottom:1px solid var(--line-subtle);transform:translateY(-110%);opacity:0;transition:transform .45s cubic-bezier(.22,1,.36,1),opacity .3s ease}
+.minibar.on{transform:none;opacity:1}
+.minibar .round{width:40px;height:40px}
+.minititle{display:flex;align-items:center;gap:8px;font-size:16px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (prefers-reduced-motion: reduce){.minibar{transition:opacity .2s}}
