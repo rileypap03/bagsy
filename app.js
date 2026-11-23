@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='7efdfd8f';
+window.BAGSY_VERSION='ec5189d1';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -247,7 +247,7 @@ function signIn(){
     <button class="btn" data-act="auth" ${e.sending?'disabled':''}>${e.sending?(up?'Creating…':'Signing in…'):(up?'Create account':'Sign in')}</button>
     ${e.err?`<p class="cap behind" role="alert" style="margin:0">${e.err}</p>`:''}
     <p class="cap muted" style="margin:0">${up?'Use a password you’ll remember. Your password manager can save it.':'New here? Tap Create account.'}</p></div>
-    ${up?'':`<button class="link" data-act="forgot" style="align-self:center">Forgot your password?</button>`}</div>`;
+    ${up?`<p class="cap muted" style="margin:0 8px;text-align:center">Bagsy is Paul’s test app. As the person running it, he can see the trips and amounts you add. He won’t look, and he’ll delete them when testing ends.</p>`:`<button class="link" data-act="forgot" style="align-self:center">Forgot your password?</button>`}</div>`;
 }
 /* arrived from the reset email: choose a new password */
 function newPassword(){
@@ -351,6 +351,7 @@ function you(){
   ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,44,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
   <h2>Notifications</h2>${notifyCard(standalone,ios)}
   ${standalone?'':`<h2>Put Bagsy on your home screen</h2><div class="card sm" style="display:flex;flex-direction:column;gap:6px">${ios?`<span>1. Open this page in <b>Safari</b>.</span><span>2. Tap the Share button, then <b>Add to Home Screen</b>.</span><span>3. Open Bagsy from your home screen and sign in once more.</span>`:`<span>Open your browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.</span>`}</div>`}
+  <h2>Help make Bagsy better</h2><button class="card row fbcard" data-act="feedback"><span class="col"><span class="b">Send feedback</span><span class="cap muted">What’s confusing, broken or missing? Paul reads every one.</span></span><span class="muted" aria-hidden="true">${I(IC.chev,18,2.2)}</span></button>
   <button class="btn sec" data-act="signOut" style="margin-top:12px">Sign out</button>
   ${api.preview?`<h2>Preview tools</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><span class="cap muted">Pretend to be someone else to test the partner side. Sign out, then create another account with a different email.</span>${api._users().filter(u=>u.id!==user.id).map(u=>`<button class="btn s sec" data-switch="${u.id}">Switch to ${esc(u.name||u.email)}</button>`).join('')}<button class="btn s sec" data-act="wipe">Wipe preview data</button></div>`:''}
   <p class="demo">Bagsy ${window.BAGSY_VERSION||''}</p></div>`;
@@ -587,7 +588,7 @@ const friendly = e => { const m=String(e&&(e.message||e.error_description)||e); 
 function renderLayer(){
   const old=layer.querySelector('.sheet'), st=old?old.scrollTop:0, oldType=old?old.dataset.type:null;
   let h='';
-  if(sheet&&user&&A){ const f={saving:savingSheet,log:logSheet,avatar:avatarSheet,join:joinSheet,code:codeSheet,settings:settingsSheet,addPart:addPartSheet}[sheet.type]; if(f) h=f(); }
+  if(sheet&&user&&A){ const f={saving:savingSheet,log:logSheet,avatar:avatarSheet,join:joinSheet,code:codeSheet,settings:settingsSheet,addPart:addPartSheet,feedback:feedbackSheet}[sheet.type]; if(f) h=f(); }
   if(toast) h+=`<div class="toast" role="status"><span style="flex:1">${toast.msg}</span>${toast.undo?'<button data-act="undo">Undo</button>':''}</div>`;
   layer.innerHTML=h;
   const ns=layer.querySelector('.sheet'); if(ns&&old&&oldType===ns.dataset.type){ ns.style.animation='none'; ns.parentElement.style.animation='none'; ns.scrollTop=st; }
@@ -675,6 +676,14 @@ function joinSheet(){
   const s=sheet, p=s.preview, already=A.trips.some(t=>t.code===s.code);
   return wrap('join','jt',`${sheetHead('jt','Join a trip')}${s.preview===undefined?`<div class="center" style="min-height:120px"><span class="spin"></span></div>`:p?`<div class="scenebox" style="height:120px;${sceneBg({place:p.place})}">${scene({place:p.place})}</div><div class="col"><span class="b" style="font-size:18px">${esc(p.from||'Someone')} invited you to ${esc(p.place)}</span><span class="cap muted">${fmt(D(p.start_date),false)} ${D(p.start_date).getUTCFullYear()}</span></div><p class="sm muted" style="margin:0">You’ll see the whole trip and the parts set aside for you. Your money stays in your own bank.</p><button class="btn" data-act="doJoin" ${busy?'disabled':''}>${already?'Open the trip':'Join the trip'}</button>`:`<p class="behind" style="margin:0">${esc(s.err||'That code doesn’t match a trip. Check it with whoever invited you.')}</p><button class="btn sec" data-act="enterCode">Type the code</button>`}`);
 }
+function feedbackSheet(){
+  if(sheet.sent) return wrap('feedback','fbt',`${sheetHead('fbt','Thank you')}<p style="margin:0">Got it. Paul will read it and use it to make Bagsy better.</p><button class="btn" data-act="closeSheet">Done</button>`);
+  return wrap('feedback','fbt',`${sheetHead('fbt','Send feedback','Goes straight to Paul, along with your app version')}
+  <div class="chips" role="group" aria-label="What kind of feedback">${['Something’s confusing','Something’s broken','An idea'].map(k=>`<button class="chip" data-fbkind="${k}" aria-pressed="${sheet.kind===k}">${k}</button>`).join('')}</div>
+  <label class="b" for="fbText">Tell us more</label><textarea id="fbText" class="field" rows="5" maxlength="2000" placeholder="What were you trying to do, and what happened?" style="resize:vertical;min-height:120px;font:inherit">${esc(sheet.text||'')}</textarea>
+  ${sheet.err?`<p class="cap behind" role="alert" style="margin:0">${sheet.err}</p>`:''}
+  <button class="btn" data-act="sendFeedback" ${sheet.sending?'disabled':''}>${sheet.sending?'Sending…':'Send'}</button>`);
+}
 function codeSheet(){ return wrap('code','ct',`${sheetHead('ct','Got an invite code?')}<input id="joinCode" class="field code" autocapitalize="characters" maxlength="8" placeholder="ABC123" value="${esc(sheet.val||'')}"><button class="btn" data-act="lookupCode">Find the trip</button>`); }
 function settingsSheet(){
   const t=trip(sheet.trip), d=sheet.draft, creator=t.createdBy===user.id, pt=partnerOf(t);
@@ -761,6 +770,7 @@ document.addEventListener('click',async e=>{
     if(p.on&&(p.name==='Flights'||p.name==='Stay')) plan.parts.forEach(x=>{ if(x.name==='Package holiday') x.on=false; });
     render(); return; }
   if(ds.owner){ plan.parts[+ds.owner].owner=ds.w; render(); return; }
+  if(ds.fbkind&&sheet&&sheet.type==='feedback'){ const ta=document.getElementById('fbText'); if(ta) sheet.text=ta.value; sheet.kind=sheet.kind===ds.fbkind?'':ds.fbkind; renderLayer(); return; }
   if(ds.avk){ sheet.draft[ds.avk]=ds.avv; if(sheet.type==='onboard') render(); else renderLayer(); return; }
   if(ds.authmode){ auth.mode=ds.authmode; auth.err=''; const v=document.getElementById('email'); if(v) auth.email=v.value; render(); return; }
   if(ds.switch){ api._switch(ds.switch); user=await api.session(); A=null; sheet=null; UI={tab:'trips',screen:{name:'tabs'}}; render(); reload(); return; }
@@ -843,6 +853,13 @@ document.addEventListener('click',async e=>{
     case 'retry': loadErr=''; render(); reload(); break;
     case 'share': share(trip(ds.trip)); break;
     case 'enterCode': sheet={type:'code'}; renderLayer(); document.getElementById('joinCode')?.focus(); break;
+    case 'feedback': sheet={type:'feedback',kind:'',text:''}; renderLayer(); break;
+    case 'sendFeedback': { const t=(document.getElementById('fbText').value||'').trim(); sheet.text=t; if(!t){ sheet.err='Add a line or two first.'; renderLayer(); return; }
+      sheet.sending=true; sheet.err=''; renderLayer();
+      const ua=navigator.userAgent, device=/iphone|ipad/i.test(ua)?'iPhone':/android/i.test(ua)?'Android':'Desktop';
+      try{ await api.sendFeedback((sheet.kind?sheet.kind+': ':'')+t, { version:window.BAGSY_VERSION||'', device:device+((matchMedia('(display-mode: standalone)').matches||navigator.standalone)?' app':' browser') }); sheet.sending=false; sheet.sent=true; buzz('success'); }
+      catch(err){ sheet.sending=false; sheet.err='That didn’t send. Check your connection and try again.'; }
+      renderLayer(); break; }
     case 'lookupCode': { const v=(document.getElementById('joinCode').value||'').trim().toUpperCase(); if(!v) return; sheet={type:'join',code:v,preview:undefined}; renderLayer(); loadInvite(sheet); break; }
     case 'doJoin': { const s=sheet; busy=true; renderLayer(); try{ const id=await api.join(s.code); busy=false; sheet=null; await reload(); UI.screen={name:'trip',id}; render(); view.scrollTop=0; showToast(`You’re in. Tap one of your parts to set how you’ll save.`); }catch(err){ busy=false; s.err=friendly(err); s.preview=null; renderLayer(); } break; }
     case 'tripSettings': { const t=trip(UI.screen.id); sheet={type:'settings',trip:t.id,draft:{place:t.place,kind:t.kind,start:t.start,nights:t.nights}}; renderLayer(); break; }

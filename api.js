@@ -42,6 +42,7 @@ function realApi(){
       return { profiles, trips, members, parts, logs, replies, activity, surprises, forMe };
     },
     async saveProfile(uid, fields){ ok(await sb.from('profiles').upsert({ id:uid, ...fields })); },
+    async sendFeedback(body, meta){ ok(await sb.from('feedback').insert({ body, version:meta.version, device:meta.device })); },
     async createTrip(trip, parts){
       const t = ok(await sb.from('trips').insert(trip).select().single());
       if(parts.length) ok(await sb.from('parts').insert(parts.map((p,i)=>({ ...p, trip_id:t.id, position:i }))));
@@ -117,6 +118,7 @@ function previewApi(){
           return { trip_id:x.trip_id, from_user:x.from_user, from_name:pf.name, place:x.revealed_at?t.place:null, kind:x.revealed_at?t.kind:null, trip_type:t.trip_type||'holiday', start_date:t.start_date, nights:t.nights, hint:x.hint||'', save_date_at:x.save_date_at||null, revealed_at:x.revealed_at||null }; })
       }));
     },
+    async sendFeedback(body, meta){ need(); await wait(); (db.feedback=db.feedback||[]).push({ id:uuid(), user_id:me(), body, ...meta, created_at:new Date().toISOString() }); save(); },
     async saveProfile(uid, f){ need(); await wait(); const p = db.profiles.find(x=>x.id===uid); Object.assign(p, f); save(); },
     async createTrip(trip, parts){
       need(); await wait();
