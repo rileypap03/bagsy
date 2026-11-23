@@ -169,11 +169,32 @@ const TABS=['trips','activity','you']; let lastTabIdx=-1;
 const banner = () => (api.preview?`<div class="pv">Preview mode: everything is saved in this browser only.</div>`:'')+(offline?`<div class="pv off">You’re offline. Showing what was saved last time.</div>`:'');
 
 /* sign in with email and password; new accounts are ready straight away (email confirmation is off in Supabase) */
+// "Check your email": one clear next step (open the mail app), a resend with a short wait, and a way back
+const RESEND_WAIT=30;
+function mailApp(em){ const d=(em.split('@')[1]||'').toLowerCase();
+  if(/^(gmail|googlemail)\.com$/.test(d)) return ['Open Gmail', /iPhone|iPad/.test(navigator.userAgent)?'googlegmail://':'https://mail.google.com/'];
+  if(/^(icloud|me|mac)\.com$/.test(d)) return ['Open Mail','message://'];
+  if(/^(outlook|hotmail|live|msn)\.(com|co\.uk)$/.test(d)) return ['Open Outlook','https://outlook.live.com/mail/'];
+  if(/^yahoo\./.test(d)) return ['Open Yahoo Mail','https://mail.yahoo.com/'];
+  return null; }
+let resendTimer=null;
+function sentScreen(e){
+  const left=Math.max(0,RESEND_WAIT-Math.floor((Date.now()-(e.sentAt||0))/1000)), app=mailApp(e.email||'');
+  clearTimeout(resendTimer); if(left>0) resendTimer=setTimeout(()=>{ if(auth&&auth.mode==='sent'){ const b=document.querySelector('[data-act=resend]'); if(b) render(); } },1000);
+  return `<div class="auth">${banner()}<div class="card sent" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:28px 20px 20px;margin-top:max(40px,8vh)">
+  <img src="img/bag-backpack.png" alt="" style="width:104px;height:104px;object-fit:contain" class="sentbag">
+  <div class="col" style="gap:6px;flex:none"><h1 style="margin:0;font-size:24px;line-height:30px">Check your email</h1><p class="muted" style="margin:0">We’ve sent a reset link to<br><b style="color:var(--ink)">${esc(e.email)}</b></p></div>
+  <p class="sm muted" style="margin:0">Tap the link, choose a new password, then come back here to sign in.</p>
+  ${app?`<a class="btn" href="${app[1]}" style="text-decoration:none;display:flex;align-items:center;justify-content:center;color:var(--ink)">${app[0]}</a>`:''}
+  <button class="btn ${app?'sec':''}" data-act="resend" ${left?'disabled':''}>${left?`Send it again in ${left}s`:'Send it again'}</button>
+  <div class="row" style="justify-content:center;gap:20px;flex:none"><button class="link" data-act="forgot">Use a different email</button><button class="link" data-authmode="in">Sign in</button></div>
+  <p class="cap muted" style="margin:0">Not there after a few minutes? Check your junk folder.</p></div></div>`;
+}
 function signIn(){
   const e=auth, up=e.mode==='up';
-  if(e.mode==='forgot'||e.mode==='sent') return `<div class="auth">${banner()}<div class="authtop" style="padding-bottom:0"><img src="img/bagsy-black.svg" alt="Bagsy" style="height:44px"></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:12px">${e.mode==='sent'?`<span class="b" style="font-size:18px">Check your email</span><p class="sm muted" style="margin:0">If there’s a Bagsy account for <b style="color:var(--ink)">${esc(e.email)}</b>, a link to choose a new password is on its way. It can take a few minutes, and might land in junk.</p><p class="sm muted" style="margin:0">The link opens in your browser. Set the new password there, then come back to Bagsy and sign in with it.</p>`
-    :`<span class="b" style="font-size:18px">Forgot your password?</span><p class="sm muted" style="margin:0">Put in the email you signed up with and we’ll send you a link to choose a new one.</p><label class="b" for="email">Email</label><input id="email" class="field" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${esc(e.email)}"><button class="btn" data-act="sendReset" ${e.sending?'disabled':''}>${e.sending?'Sending…':'Send reset link'}</button>${e.err?`<p class="cap behind" role="alert" style="margin:0">${e.err}</p>`:''}`}
+  if(e.mode==='sent') return sentScreen(e);
+  if(e.mode==='forgot') return `<div class="auth">${banner()}<div class="authtop" style="padding-bottom:0"><img src="img/bagsy-black.svg" alt="Bagsy" style="height:44px"></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="b" style="font-size:18px">Forgot your password?</span><p class="sm muted" style="margin:0">Put in the email you signed up with and we’ll send you a link to choose a new one.</p><label class="b" for="email">Email</label><input id="email" class="field" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${esc(e.email)}"><button class="btn" data-act="sendReset" ${e.sending?'disabled':''}>${e.sending?'Sending…':'Send reset link'}</button>${e.err?`<p class="cap behind" role="alert" style="margin:0">${e.err}</p>`:''}
     <button class="link" data-authmode="in" style="align-self:center">Back to sign in</button></div></div>`;
   return `<div class="auth">${banner()}<div class="authtop"><img src="img/bagsy-black.svg" alt="Bagsy" style="height:56px"><p class="muted" style="margin:14px 0 0;font-size:16px">Save for a trip together.<br>Each of you bagsies your part.</p></div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -715,10 +736,11 @@ document.addEventListener('click',async e=>{
           : esc(friendly(err));
         render(); } break; }
     case 'forgot': auth={mode:'forgot',email:auth.email||(document.getElementById('email')||{}).value||'',err:'',sending:false}; if(api.recovering()) location.replace(location.pathname); else render(); break;
+    case 'resend': { if(!auth||!auth.email) break; try{ await api.resetPassword(auth.email); auth.sentAt=Date.now(); showToast('Sent again. Check your inbox and junk.'); }catch(err){ showToast(friendly(err)); } render(); break; }
     case 'sendReset': { const em=(document.getElementById('email').value||'').trim(); auth.email=em;
       if(!/^\S+@\S+\.\S+$/.test(em)){ auth.err='Enter your email address.'; render(); return; }
       auth.sending=true; auth.err=''; render();
-      try{ await api.resetPassword(em); auth.sending=false; auth.mode='sent'; render(); }
+      try{ await api.resetPassword(em); auth.sending=false; auth.mode='sent'; auth.sentAt=Date.now(); render(); }
       catch(err){ auth.sending=false; const m=String(err&&err.message||err); auth.err=/rate|seconds|too many/i.test(m)?'Too many tries. Wait a few minutes, then try again.':esc(friendly(err)); render(); } break; }
     case 'savePw': { const pw=document.getElementById('npw').value||''; if(pw.length<8){ auth.err='Make your password at least 8 characters.'; render(); return; }
       auth.sending=true; auth.err=''; render();
