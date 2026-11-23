@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='134fc505';
+window.BAGSY_VERSION='9c31469e';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -942,7 +942,7 @@ function miniBar(){ const mb=document.querySelector('#chrome .minibar'), m=docum
   const show=m.getBoundingClientRect().bottom<80; if(show===mb.classList.contains('on')) return;
   mb.classList.toggle('on',show); if(show){ mb.removeAttribute('inert'); mb.removeAttribute('aria-hidden'); } else { mb.setAttribute('inert',''); mb.setAttribute('aria-hidden','true'); } }
 function topTint(){ const bar=document.getElementById('topbar'); if(!bar) return; const m=document.querySelector('#view .mast'); let c='#F1F3F2';
-  if(document.getElementById('splash')&&!splashSeen) c='#E9BE4E'; // match the splash so there's no seam
+  if(document.getElementById('splash')&&!splashSeen) c='#F0B64A'; // the video's own top yellow, so there's no seam
   if(m&&m.dataset.sky){ const r=m.getBoundingClientRect(); if(r.bottom>bar.offsetHeight+60) c=m.dataset.sky; }
   if(c===topCol) return; topCol=c; bar.style.background=c; const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); }
 document.getElementById('view').addEventListener('scroll',()=>{ topTint(); miniBar(); },{passive:true});

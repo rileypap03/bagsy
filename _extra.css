@@ -162,3 +162,6 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 #phone:has(#chrome .bottom) .toast{bottom:calc(124px + env(safe-area-inset-bottom))}
 @keyframes toastIn{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.toast{animation:none}}
+/* splash: lift the case and logo so the pair sits around the middle of the screen; fill the space it leaves with the video's own yellow */
+.splash{background:linear-gradient(#F0B64A,#E9AF45);overflow:hidden}
+.splash video,.splash img{transform:translateY(-15%)}

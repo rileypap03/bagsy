@@ -901,7 +901,7 @@ function miniBar(){ const mb=document.querySelector('#chrome .minibar'), m=docum
   const show=m.getBoundingClientRect().bottom<80; if(show===mb.classList.contains('on')) return;
   mb.classList.toggle('on',show); if(show){ mb.removeAttribute('inert'); mb.removeAttribute('aria-hidden'); } else { mb.setAttribute('inert',''); mb.setAttribute('aria-hidden','true'); } }
 function topTint(){ const bar=document.getElementById('topbar'); if(!bar) return; const m=document.querySelector('#view .mast'); let c='#F1F3F2';
-  if(document.getElementById('splash')&&!splashSeen) c='#E9BE4E'; // match the splash so there's no seam
+  if(document.getElementById('splash')&&!splashSeen) c='#F0B64A'; // the video's own top yellow, so there's no seam
   if(m&&m.dataset.sky){ const r=m.getBoundingClientRect(); if(r.bottom>bar.offsetHeight+60) c=m.dataset.sky; }
   if(c===topCol) return; topCol=c; bar.style.background=c; const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); }
 document.getElementById('view').addEventListener('scroll',()=>{ topTint(); miniBar(); },{passive:true});
