@@ -164,4 +164,5 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 @media (prefers-reduced-motion: reduce){.toast{animation:none}}
 /* splash: lift the case and logo so the pair sits around the middle of the screen; fill the space it leaves with the video's own yellow */
 .splash{background:linear-gradient(#F0B64A,#E9AF45);overflow:hidden}
-.splash video,.splash img{transform:translateY(-15%)}
+.splash video{transition:transform .8s cubic-bezier(.45,0,.2,1)}
+.splash video.lift,.splash img{transform:translateY(-13%)}
