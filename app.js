@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='72b96095';
+window.BAGSY_VERSION='d63d11f1';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -79,6 +79,7 @@ let A = ls.get('bagsy-cache', null);     // last loaded data, for a fast, offlin
 let user = null, booting = true, offline = false, busy = false, loadErr = '';
 let UI = { tab:'trips', screen:{name:'tabs'} };
 let plan=null, sheet=null, toast=null, toastTimer=null, auth={ mode:'in', email:'', err:'', sending:false };
+let topCol=''; // last colour painted behind the status bar
 let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
@@ -573,7 +574,7 @@ function showSplash(){
   document.documentElement.classList.add('app');
   const el=document.createElement('div'); el.className='splash'; el.id='splash';
   el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video>`;
-  document.getElementById('phone').appendChild(el);
+  document.getElementById('phone').appendChild(el); topCol=''; topTint();
   const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash; v.onerror=()=>setTimeout(endSplash,800);
   /* if the phone won't autoplay (Low Power Mode does this), show the finished splash still for a moment instead of a play button */
   let still=false; const fallback=()=>{ if(still||splashSeen) return; still=true; v.remove(); const im=document.createElement('img'); im.src='img/splash-end.jpg'; im.alt=''; im.style.cssText='width:100%;height:100%;object-fit:cover'; el.insertBefore(im,el.firstChild); setTimeout(endSplash,1100); };
@@ -582,7 +583,7 @@ function showSplash(){
 }
 function setTheme(c){ if(innerWidth<520){ document.documentElement.style.background=c; document.body.style.background=c; } }
 function clearTheme(){ topCol=''; setTimeout(topTint,0); document.documentElement.style.background=''; document.body.style.background=''; document.documentElement.classList.add('app'); }
-function endSplash(){ if(splashSeen) return; splashSeen=true; clearTheme(); const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
+function endSplash(){ if(splashSeen) return; splashSeen=true; clearTheme(); topCol=''; topTint(); const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
 const sheetHead = (id,title,sub) => `<span class="grab" aria-hidden="true"></span><div class="row"><div class="col"><span id="${id}" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${title}</span>${sub?`<span class="cap muted">${sub}</span>`:''}</div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>`;
 const wrap = (type,id,inner) => `<div class="scrim" data-act="closeSheet"><div class="sheet" data-type="${type}" role="dialog" aria-modal="true" aria-labelledby="${id}" data-stop>${inner}</div></div>`;
 function savingSheet(){
@@ -914,8 +915,8 @@ new MutationObserver(()=>segSync(document)).observe(document.documentElement,{ch
 
 // Status bar colour follows the page: the trip's sky while its scene is at the top, light grey once you scroll past.
 // iOS 26 Safari ignores theme-color and tints the status bar from a fixed element at the top, so we keep one there.
-let topCol='';
 function topTint(){ const bar=document.getElementById('topbar'); if(!bar) return; const m=document.querySelector('#view .mast'); let c='#F1F3F2';
+  if(document.getElementById('splash')&&!splashSeen) c='#E9BE4E'; // match the splash so there's no seam
   if(m&&m.dataset.sky){ const r=m.getBoundingClientRect(); if(r.bottom>bar.offsetHeight+60) c=m.dataset.sky; }
   if(c===topCol) return; topCol=c; bar.style.background=c; const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); }
 document.getElementById('view').addEventListener('scroll',topTint,{passive:true});

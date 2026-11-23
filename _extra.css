@@ -61,7 +61,7 @@ img.scene{position:absolute;left:0;bottom:0;width:100%;height:auto;display:block
 /* iOS date inputs ignore width:100% and overflow the card */
 input[type=date].field{display:block;min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left;line-height:45px}
 input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
-#topbar{position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top),1px);z-index:200;pointer-events:none;background:#F1F3F2}
+#topbar{position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top),12px);z-index:200;pointer-events:none;background:#F1F3F2}
 @media(min-width:520px){#topbar{display:none}}
 .amtin{display:inline-flex;align-items:baseline;justify-content:center;gap:1px;font-size:32px;line-height:36px;font-weight:700;letter-spacing:-.03em;padding:2px 10px;border-radius:10px;border-bottom:2px dashed var(--line-control);cursor:text}
 .amtin input{font:inherit;letter-spacing:inherit;color:inherit;border:0;background:transparent;padding:0;min-width:1.6ch;max-width:7ch;text-align:left;outline:none}
