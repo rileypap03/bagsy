@@ -96,7 +96,7 @@ function previewApi(){
       const mk=(place,country,iata,kind,why,weather,fl,night,daily,live)=>{ const stay=Math.round(night*n/(ppl===1?1:2)), sp=daily*n, total=fl+stay+sp;
         return { place,country,iata,kind,why,weather,start,nights:n, flight:{pp:fl,live,direct:live,airline:live?'EZY':'',link:'https://www.aviasales.com/'}, stay:{night,pp:stay}, spend:{daily,pp:sp}, total, over:Math.max(0,total-ask.budget) }; };
       const ideas=[ mk('Tenerife','Spain','TFS','tropical','Reliable sun and a short-ish flight, with quiet towns away from the strip','22°C, mostly sunny',149,60,25,true),
-        mk('Madeira','Portugal','FNC','mountains','Mild and green, great walks along the levadas and good food','19°C, some cloud',168,62,26,true),
+        mk('Madeira','Portugal','FNC','countryside','Mild and green, great walks along the levadas and good food','19°C, some cloud',168,62,26,true),
         mk('Paphos','Cyprus','PFO','coast','Harbour town with old ruins and warm afternoons','18°C, sunny spells',198,70,30,true),
         mk('Marrakech','Morocco','RAK','desert','Warm days, riads and souks, and cheap to eat well','20°C, dry and sunny',156,55,24,false),
         mk('Lanzarote','Spain','ACE','coast','Calmer than Tenerife, volcanic scenery and beaches','21°C, sunny',231,95,42,true) ].sort((a,b)=>a.over-b.over||b.total-a.total);

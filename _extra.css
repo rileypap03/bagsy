@@ -99,3 +99,39 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 .ownpct{font-size:20px;font-weight:700;letter-spacing:-.01em;flex:none}
 .prow .ico{width:48px;height:44px}.prow .ico img{width:44px;height:44px}
 .pnm{font-size:15px;font-weight:500}.pam{font-size:15px;font-weight:600}
+/* ---------- holiday finder ---------- */
+.vibes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.vibe{position:relative;border:0;padding:6px 6px 10px;border-radius:16px;background:#fff;display:flex;flex-direction:column;gap:8px;text-align:left;font-weight:600;font-size:14px;box-shadow:var(--shadow-card)}
+.vibe img,.vibe .vimg{width:100%;height:64px;object-fit:cover;object-position:65% 100%;border-radius:12px;display:block}
+.vibe>span:last-of-type{padding:0 4px}
+.vibe.any{background:none;box-shadow:none;border:1.5px dashed var(--line-control)}
+.vibe .vimg{display:grid;place-items:center;color:var(--ink-muted)}
+.vibe[aria-pressed=true]{box-shadow:0 0 0 3px var(--yellow)}
+.vtick{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:12px;background:var(--yellow);display:grid;place-items:center}
+.fbig{font-size:44px;line-height:52px;font-weight:700;letter-spacing:-.03em;border:0;background:none;padding:0;width:100%;min-width:0;font-family:inherit;color:var(--ink);font-feature-settings:'tnum' 1}
+.fbig:focus{outline:none}
+.fsentence{margin:0;font-size:20px;line-height:36px;font-weight:600;letter-spacing:-.01em}
+.fpill{border:0;background:var(--surface-page);border-radius:10px;padding:2px 8px;font:inherit;color:inherit;min-height:32px}
+.fpill[aria-expanded=true]{background:var(--yellow)}
+.fscene{position:relative;border-radius:24px;overflow:hidden}
+.fscene>img,.fscene>.scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+.fsteps{list-style:none;margin:0;display:flex;flex-direction:column;gap:14px}
+.fsteps li{display:flex;align-items:center;gap:12px;font-size:15px;color:var(--ink-muted)}
+.fsteps li>span:nth-child(2){flex:1}
+.fsteps li.done,.fsteps li.now{color:var(--ink)}
+.fsteps li.now{font-weight:600}
+.fdot{width:28px;height:28px;border-radius:14px;border:1.5px solid var(--line-control);box-sizing:border-box;flex:none;display:grid;place-items:center}
+.fdot.ok{background:var(--yellow);border:0}
+.fspin{width:22px;height:22px;margin:3px;border-radius:50%;border:3px solid var(--track);border-top-color:var(--brass);box-sizing:border-box;flex:none;animation:spin .8s linear infinite}
+.irow-scroll{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 8px;scrollbar-width:none;scroll-padding:0 16px;align-items:stretch}
+.irow-scroll::-webkit-scrollbar{display:none}
+.icard{flex:none;width:calc(100% - 64px);max-width:360px;scroll-snap-align:start;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 8px 28px rgba(17,18,20,.10),0 1px 2px rgba(17,18,20,.04);display:flex;flex-direction:column}
+.ibody{padding:14px 16px 6px;display:flex;flex-direction:column;gap:12px;flex:1}
+.ibar{display:flex;gap:3px;height:10px}
+.ibar span{border-radius:2px}.ibar span:first-child{border-radius:5px 2px 2px 5px}.ibar span:last-child{border-radius:2px 5px 5px 2px}
+.irow{gap:10px;font-size:15px}
+.idot{width:10px;height:10px;border-radius:5px;flex:none}
+.idots{display:flex;gap:6px;justify-content:center}
+.idots span{width:6px;height:6px;border-radius:3px;background:var(--line);transition:width .2s}
+.idots span.on{width:18px;background:var(--ink)}
+@media (prefers-reduced-motion: reduce){.fspin{animation:none}}

@@ -389,52 +389,97 @@ function startPlan(){
 }
 function fixDues(){ plan.parts.forEach(p=>{ p.due=partDue(p.name,plan.start); }); }
 /* ---------- holiday finder: "winter sun in Feb, £600 each" → places that fit, with real flight prices ---------- */
-const VIBES = [['Winter sun','winter sun, warm and sunny'],['Beach','a beach holiday'],['City break','a city break with good food'],['Mountains','mountains and walking'],['Snow','snow, skiing or a winter wonderland'],['Countryside','countryside, slow and quiet'],['Surprise us','anywhere good value that suits the season']];
+const VIBES = [['Winter sun','winter sun, warm and sunny','tropical','Packing for somewhere warm…'],['City break','a city break with good food','city','Packing for city streets…'],['Beach','a beach holiday','coast','Packing for the beach…'],['Snow','snow, skiing or a winter wonderland','snow','Packing the warm layers…'],['Countryside','countryside, slow and quiet','countryside','Packing for somewhere quiet…'],['Surprise us','anywhere good value that suits the season',null,'Packing for anywhere…']];
 const FROM = [['LON','London'],['MAN','Manchester'],['BHX','Birmingham'],['BRS','Bristol'],['EDI','Edinburgh'],['GLA','Glasgow'],['LBA','Leeds Bradford'],['NCL','Newcastle'],['LPL','Liverpool'],['EMA','East Midlands']];
+const FULLM = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 let find=null;
 function findMonths(){ const out=[]; for(let i=1;i<=12;i++){ const d=new Date(Date.UTC(TODAY.getUTCFullYear(),TODAY.getUTCMonth()+i,1)); out.push([iso(d).slice(0,7), MN[d.getUTCMonth()]+(d.getUTCFullYear()!==TODAY.getUTCFullYear()?' ’'+String(d.getUTCFullYear()).slice(2):'')]); } return out; }
+const monthName = ym => FULLM[+ym.slice(5,7)-1];
 function openFind(){
   const last=ls.get('bagsy-find',{}), months=findMonths();
-  find={ step:'ask', vibe:last.vibe||'Winter sun', month:months.some(m=>m[0]===last.month)?last.month:months[2][0], nights:last.nights||7, from:last.from||'LON', budget:last.budget||600, people:last.people||2, notes:'', res:null, err:'' };
+  find={ step:'ask', vibe:VIBES.some(v=>v[0]===last.vibe)?last.vibe:'Winter sun', month:months.some(m=>m[0]===last.month)?last.month:months[2][0], nights:last.nights||7, from:last.from||'LON', budget:last.budget||600, people:last.people||2, notes:'', res:null, err:'', edit:null, prog:0 };
   UI.screen={name:'find'}; render(); view.scrollTop=0;
 }
 async function runFind(){
-  const F=find; F.step='busy'; F.err=''; render(); view.scrollTop=0;
+  const F=find; F.step='busy'; F.err=''; F.prog=0; F.edit=null; render(); view.scrollTop=0;
   ls.set('bagsy-find',{ vibe:F.vibe, month:F.month, nights:F.nights, from:F.from, budget:F.budget, people:F.people });
+  // the server does these steps in order; tick them off on a rough clock so the wait reads as progress
+  const tick=[4000,11000,16000].map((ms,i)=>setTimeout(()=>{ if(find===F&&F.step==='busy'&&F.prog<i+1){ F.prog=i+1; render(); } },ms));
   try{ const v=VIBES.find(x=>x[0]===F.vibe)||VIBES[0], o=FROM.find(x=>x[0]===F.from)||FROM[0];
     F.res=await api.findIdeas({ vibe:v[1], month:F.month, nights:F.nights, origin:o[0], originName:o[1], budget:+F.budget||600, people:F.people, notes:F.notes.trim() });
-    if(find!==F) return; F.step='ideas'; buzz('success');
+    if(find!==F) return; F.step='ideas'; F.card=0; buzz('success');
   }catch(e){ if(find!==F) return; console.error(e); F.step='ask'; F.err=friendly(e); }
-  render(); view.scrollTop=0;
+  tick.forEach(clearTimeout); render(); view.scrollTop=0;
 }
 const monthsTo = d => Math.max(1, Math.round((D(d)-TODAY)/(30.44*DAY)));
-function findView(){
-  const F=find, head=t=>`<div class="row" style="justify-content:space-between;height:52px;padding:0 4px"><button class="round" data-act="findBack" aria-label="Back">${I(IC.back)}</button><span class="b" style="font-size:16px">${t}</span><span style="width:44px"></span></div>`;
-  if(F.step==='busy') return { main:`<div class="pad">${head('Finding ideas')}<div class="center" style="min-height:60vh;gap:14px;text-align:center"><span class="spin"></span><p class="b" style="margin:0;font-size:17px">Looking at places and flight prices</p><p class="muted" style="margin:0;max-width:280px">${esc(F.vibe)} in ${esc((findMonths().find(m=>m[0]===F.month)||['',''])[1])}, about ${money(F.budget)} ${F.people>1?'each':''}. This takes about 20 seconds.</p></div></div>`, bottom:'' };
-  if(F.step==='ideas'){
-    const r=F.res, ideas=r.ideas||[], each=F.people>1?' each':'';
-    let h=`<div class="pad" style="padding-bottom:40px">${head('Ideas')}<div style="padding:4px 8px 0"><h1>${!ideas.length?'Nothing found this time':r.inBudget?`${Math.min(r.inBudget,ideas.length)} idea${Math.min(r.inBudget,ideas.length)===1?'':'s'} for ${money(F.budget)}${each}`:`Nothing quite fits ${money(F.budget)}${each}`}</h1>${ideas.length&&!r.inBudget?`<p style="margin:6px 0 0">These are the closest. Try a bit more budget, fewer nights or another month.</p>`:''}${!ideas.length?`<p style="margin:6px 0 0">Try another month or a different kind of trip.</p>`:''}<p class="muted" style="margin:6px 0 0">${esc(F.vibe)} · ${esc((findMonths().find(m=>m[0]===F.month)||['',''])[1])} · ${F.nights} nights from ${esc((FROM.find(x=>x[0]===F.from)||FROM[0])[1])}</p></div>`;
-    ideas.forEach((x,i)=>{ const pm=Math.ceil(x.total/monthsTo(x.start));
-      h+=`<div class="card" style="padding:0;overflow:hidden"><div class="scenehead" style="${sceneBg(x)}">${scene(x)}<span class="pill" style="position:absolute;left:12px;top:12px">${flag(x)}${esc(x.place)}</span>${x.over?`<span class="pill" style="position:absolute;right:12px;top:12px;padding:0 12px;color:var(--behind)">${money(x.over)} over</span>`:''}</div>
-      <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px"><div class="col"><span class="cap muted">${esc(x.country)} · ${esc(x.weather)}</span><span style="margin-top:4px">${esc(x.why)}</span></div>
-      <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line-subtle);padding-top:12px">
-      ${[['Flights',x.flight.pp,x.flight.live?`${x.flight.direct?'Direct, ':''}recent fare`:'Bagsy’s estimate'],['Stay',x.stay.pp,`${money(x.stay.night)} a night${F.people>1?', your half':''}`],['Spending money',x.spend.pp,`${money(x.spend.daily)} a day, food and fun`]].map(([n,v,c])=>`<div class="row" style="gap:12px">${partIcon(n)}<span class="col" style="flex:1"><span class="b">${n}</span><span class="cap muted">${c}</span></span><span class="b">${money(v)}</span></div>`).join('')}</div>
-      <div class="row" style="align-items:flex-end;border-top:1px solid var(--line-subtle);padding-top:12px"><div class="col"><span class="cap muted">${tripDates({start:x.start,nights:x.nights})}</span><span style="font-size:26px;line-height:32px;font-weight:700;letter-spacing:-.03em">${money(x.total)}<span class="muted" style="font-size:15px;font-weight:500;letter-spacing:0">${each}</span></span></div><span class="sm b" style="padding-bottom:4px">${money(pm)} a month${each}</span></div>
-      <button class="btn" data-pick="${i}">Plan this trip</button><a class="link" href="${esc(x.flight.link)}" target="_blank" rel="noopener" style="align-self:center;padding:4px 0">Check flights ↗</a></div></div>`; });
-    h+=`<p class="cap muted" style="margin:0 8px">Flight prices are recent fares found on Aviasales and may not include a hold bag; stay and spending money are Bagsy’s estimates. Prices change, so check before you book. Bagsy never books or takes payment.</p><button class="dash" data-act="findAgain">Change what you’re looking for</button></div>`;
-    return { main:h, bottom:'' };
-  }
-  const months=findMonths();
-  const main=`<div class="pad" style="padding-bottom:200px">${head('Find a trip')}<div style="padding:4px 8px 0"><h1>Not sure where yet?</h1><p class="muted" style="margin:6px 0 0">Say what you fancy and what you can spend. Bagsy suggests places that fit, with real flight prices.</p></div>
+const vibeScene = F => (VIBES.find(v=>v[0]===F.vibe)||VIBES[0])[2] || 'coast';
+function findHead(title, sub, right){ return `<div class="row" style="justify-content:space-between;height:52px;padding:0 4px"><button class="round" data-act="findBack" aria-label="Back">${I(IC.back)}</button><span class="col" style="align-items:center;text-align:center;min-width:0"><span class="b" style="font-size:16px">${title}</span>${sub?`<span class="cap muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px">${sub}</span>`:''}</span>${right||'<span style="width:44px"></span>'}</div>`; }
+function findAsk(){
+  const F=find, months=findMonths(), each=F.people>1?' each':'', from=(FROM.find(x=>x[0]===F.from)||FROM[0])[1];
+  const pm=Math.ceil((+F.budget||0)/Math.max(1,monthsTo(F.month+'-15')));
+  const pill=(k,label)=>`<button class="fpill" data-fedit="${k}" aria-expanded="${F.edit===k}">${esc(label)}</button>`;
+  let editor='';
+  if(F.edit==='people') editor=`<div class="chips">${[[2,'Two of us'],[1,'Just me']].map(([k,l])=>`<button class="chip" data-fpeople="${k}" aria-pressed="${F.people===k}">${l}</button>`).join('')}</div>`;
+  if(F.edit==='from') editor=`<div class="chips">${FROM.map(([k,l])=>`<button class="chip" data-ffrom="${k}" aria-pressed="${F.from===k}">${l}</button>`).join('')}</div>`;
+  if(F.edit==='nights') editor=`<div class="row"><span class="col"><span class="b">Nights</span><span class="cap muted">Roughly is fine</span></span><div class="stepper" style="padding:0;background:none"><button data-fnights="-1" aria-label="One less night">−</button><span class="b" style="min-width:28px;text-align:center;font-size:17px" aria-live="polite">${F.nights}</span><button data-fnights="1" aria-label="One more night">+</button></div></div>`;
+  if(F.edit==='month') editor=`<div class="chips">${months.map(([k,l])=>`<button class="chip" data-fmonth="${k}" aria-pressed="${F.month===k}">${l}</button>`).join('')}</div>`;
+  const main=`<div class="pad" style="padding-bottom:140px;gap:16px">${findHead('Find a trip')}
+  <div style="padding:0 8px" class="col"><h1>What do you fancy?</h1><p class="muted" style="margin:6px 0 0">Pick a feeling and a budget. Bagsy finds places that fit, with real flight prices.</p></div>
   ${F.err?`<div class="notice" style="background:#FDECEC;color:var(--behind)">${I(IC.warn,20,2)}<span>${esc(F.err)}</span></div>`:''}
-  <div class="card" style="display:flex;flex-direction:column;gap:14px"><span class="b">What do you fancy?</span><div class="chips" role="group" aria-label="What you fancy">${VIBES.map(([k])=>`<button class="chip" data-fvibe="${k}" aria-pressed="${F.vibe===k}">${k}</button>`).join('')}</div>
-  <label class="cap muted" for="fnotes">Anything else? Optional</label><input id="fnotes" class="field" value="${esc(F.notes)}" placeholder="No long flights, good food, quiet…" autocomplete="off"></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:14px"><span class="b">When</span><div class="chips" role="group" aria-label="Month">${months.map(([k,l])=>`<button class="chip" data-fmonth="${k}" aria-pressed="${F.month===k}">${l}</button>`).join('')}</div>
-  <div class="row"><span class="col"><span class="b">Nights</span><span class="cap muted">Roughly is fine</span></span><div class="stepper" style="padding:0;background:none"><button data-fnights="-1" aria-label="One less night">−</button><span class="b" style="min-width:28px;text-align:center;font-size:17px" aria-live="polite">${F.nights}</span><button data-fnights="1" aria-label="One more night">+</button></div></div></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:14px"><span class="b">Flying from</span><div class="chips" role="group" aria-label="Flying from">${FROM.map(([k,l])=>`<button class="chip" data-ffrom="${k}" aria-pressed="${F.from===k}">${l}</button>`).join('')}</div></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="seg" role="group" aria-label="Who’s going">${[[2,'Two of us'],[1,'Just me']].map(([k,l])=>`<button data-fpeople="${k}" aria-pressed="${F.people===k}">${l}</button>`).join('')}</div>
-  <label class="col" for="fbudget"><span class="b">Budget${F.people>1?' per person':''}</span><span class="cap muted">All in: flights, ${F.people>1?'your half of the room':'the room'}, food and spending money</span></label><div class="money"><span class="b muted">£</span><input id="fbudget" inputmode="numeric" enterkeyhint="done" value="${esc(F.budget)}" placeholder="600" aria-label="Budget"></div></div></div>`;
+  <div class="vibes" role="group" aria-label="What you fancy">${VIBES.map(([k,,sc])=>`<button class="vibe${sc?'':' any'}" data-fvibe="${k}" aria-pressed="${F.vibe===k}">${sc?`<img src="img/scene-${sc}.webp" alt="" style="background:${SCENE_SKY[sc]}">`:`<span class="vimg">${I('M12 3l1.8 4.9L19 9l-4.2 3.1L16 17l-4-2.8L8 17l1.2-4.9L5 9l5.2-1.1z',26,2)}</span>`}<span>${k}</span>${F.vibe===k?`<i class="vtick" aria-hidden="true">${I(IC.tick,14,3)}</i>`:''}</button>`).join('')}</div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px"><label for="fbudget" class="row" style="justify-content:space-between;align-items:baseline"><span class="b">Budget${each}, all in</span><span class="cap muted">Flights, room, food, fun</span></label>
+  <div class="row" style="gap:2px;align-items:baseline"><span class="fbig muted" style="width:auto;flex:none">£</span><input id="fbudget" class="fbig" style="flex:1" inputmode="numeric" enterkeyhint="done" value="${esc(F.budget)}" aria-label="Budget"></div>
+  <div class="row" style="gap:8px">${[400,600,800,1000].map(v=>`<button class="chip" style="flex:1;padding:0" data-fbq="${v}" aria-pressed="${+F.budget===v}">${money(v)}</button>`).join('')}</div>
+  <div class="notice" style="align-items:center;padding:10px 12px"><img src="img/wallet.png" alt="" style="width:32px;height:32px;object-fit:contain"><span id="fmonthly">That’s about <b>${money(pm)} a month${each}</b> if you go in ${monthName(F.month)}</span></div></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:10px"><span class="cap muted">Tap anything to change it</span>
+  <p class="fsentence">${pill('people',F.people>1?'Two of us':'Just me')} flying from ${pill('from',from)} for ${pill('nights',F.nights+' night'+(F.nights===1?'':'s'))} in ${pill('month',monthName(F.month))}</p>${editor}</div></div>`;
   return { main, bottom:`<button class="btn" data-act="findGo" ${+F.budget>=50?'':'disabled'}>Find ideas</button>` };
+}
+function findBusy(){
+  const F=find, v=VIBES.find(x=>x[0]===F.vibe)||VIBES[0], sc=vibeScene(F), from=(FROM.find(x=>x[0]===F.from)||FROM[0])[1];
+  const steps=[`Places that suit ${monthName(F.month)}`,`Checking flights from ${from}`,'Adding up the stay and spending money','Keeping the ones in your budget'];
+  return { main:`<div class="pad" style="gap:20px">${findHead('Finding ideas')}
+  <div class="fscene" style="height:160px;background:${SCENE_SKY[sc]}"><img src="img/scene-${sc}.webp" alt=""><span class="pill" style="position:absolute;left:12px;top:12px;padding:0 12px">${esc(v[3])}</span></div>
+  <div style="padding:0 8px" class="col"><h1 style="font-size:26px;line-height:32px">${esc(F.vibe)} for ${money(F.budget)}${F.people>1?' each':''}</h1><p class="muted" style="margin:6px 0 0">${esc(findMonths().find(m=>m[0]===F.month)[1])} · ${F.nights} nights · from ${esc(from)}. This takes about 20 seconds.</p></div>
+  <ol class="card fsteps" aria-label="Progress">${steps.map((t,i)=>`<li class="${i<F.prog?'done':i===F.prog?'now':''}">${i<F.prog?`<span class="fdot ok">${I(IC.tick,14,3)}</span>`:i===F.prog?'<span class="fspin" aria-hidden="true"></span>':'<span class="fdot"></span>'}<span>${t}</span>${i<F.prog?'<span class="cap muted">Done</span>':''}</li>`).join('')}</ol></div>`, bottom:'' };
+}
+function ideaCard(x,i,F){
+  const each=F.people>1?' each':'', pm=Math.ceil(x.total/monthsTo(x.start)), wk=Math.max(1,Math.round((D(x.start)-TODAY)/(7*DAY)));
+  const a=D(x.start), b=addDays(a,x.nights), sameM=a.getUTCMonth()===b.getUTCMonth();
+  const dates=`${DN[a.getUTCDay()]} ${a.getUTCDate()}${sameM?'':' '+MN[a.getUTCMonth()]} – ${DN[b.getUTCDay()]} ${b.getUTCDate()} ${MN[b.getUTCMonth()]}`;
+  const segs=[[x.flight.pp,'var(--brass)'],[x.stay.pp,'var(--brass-deep)'],[x.spend.pp,'var(--brass-light)']], room=Math.max(0,(+F.budget||0)-x.total);
+  const pt=partnerWord(), share=pt==='your partner'?'Share':'Send to '+pt;
+  return `<article class="icard" aria-label="${esc(x.place)}, idea ${i+1}"><div class="fscene" style="height:132px;border-radius:0;background:${SCENE_SKY[sceneKind(x)]}">${scene(x)}<span class="pill" style="position:absolute;left:12px;top:12px">${flag(x)}${esc(x.place)}</span>${x.flight.live&&x.flight.direct?`<span class="pill" style="position:absolute;right:12px;top:12px;padding:0 12px;font-size:13px;color:var(--ok)">Direct flight</span>`:x.over?`<span class="pill" style="position:absolute;right:12px;top:12px;padding:0 12px;font-size:13px;color:var(--behind)">${money(x.over)} over</span>`:''}</div>
+  <div class="ibody"><div class="col" style="flex:none;gap:2px"><div class="row" style="gap:10px;justify-content:space-between"><span class="b" style="font-size:17px;letter-spacing:-.01em">${dates}</span><button class="link" data-act="findDates" style="padding:2px 0;flex:none">Other dates</button></div><span class="cap muted">${x.nights} nights · in ${wk} weeks${b.getUTCFullYear()!==TODAY.getUTCFullYear()?' · '+b.getUTCFullYear():''}</span></div>
+  <p style="margin:0;font-size:15px;line-height:21px"><span class="muted">${esc(x.country)} · ${esc(x.weather)}.</span> ${esc(x.why)}</p>
+  <div class="col" style="flex:none;gap:10px;border-top:1px solid var(--line-subtle);padding-top:12px"><div class="row" style="justify-content:space-between;align-items:baseline"><span style="font-size:28px;line-height:32px;font-weight:700;letter-spacing:-.03em">${money(x.total)}<span class="muted" style="font-size:15px;font-weight:500;letter-spacing:0">${each}</span></span><span class="sm b" style="color:${x.over?'var(--behind)':'var(--ok)'}">${x.over?money(x.over)+' over budget':money(room)+' under budget'}</span></div>
+  <div class="ibar" role="img" aria-label="Flights ${money(x.flight.pp)}, stay ${money(x.stay.pp)}, spending money ${money(x.spend.pp)}, of your ${money(F.budget)}">${segs.map(([v,c])=>`<span style="flex:${v||1};background:${c}"></span>`).join('')}${room?`<span style="flex:${room};background:var(--track)"></span>`:''}</div>
+  <div class="col" style="flex:none;gap:6px">${[['Flights',x.flight.pp,x.flight.live?'recent fare':'Bagsy’s estimate','var(--brass)'],['Stay',x.stay.pp,money(x.stay.night)+' a night','var(--brass-deep)'],['Spending',x.spend.pp,money(x.spend.daily)+' a day','var(--brass-light)']].map(([n,v,d,c])=>`<div class="row irow"><span class="idot" style="background:${c}"></span><span style="flex:1">${n} <span class="muted">· ${d}</span></span><span class="b">${money(v)}</span></div>`).join('')}</div>
+  <span class="sm muted"><b style="color:var(--ink)">${money(pm)} a month${each}</b> to save it by ${FULLM[a.getUTCMonth()]}</span></div>
+  <div class="col" style="flex:none;gap:0;margin-top:auto"><button class="btn" data-pick="${i}">Plan this trip</button><div class="row" style="justify-content:space-between"><button class="link" data-shareidea="${i}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">${I('M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13',18,2.2)}${esc(share)}</button><a class="link" href="${esc(x.flight.link)}" target="_blank" rel="noopener">Check flights ↗</a></div></div></div></article>`;
+}
+function findIdeas(){
+  const F=find, r=F.res, all=r.ideas||[], ok=all.filter(x=>!x.over), over=all.filter(x=>x.over), each=F.people>1?' each':'';
+  const cards=(ok.length?ok:all), from=(FROM.find(x=>x[0]===F.from)||FROM[0])[1];
+  const title=!all.length?'Nothing found':ok.length?`${ok.length} idea${ok.length===1?'':'s'} for ${money(F.budget)}${each}`:`Nothing quite fits ${money(F.budget)}`;
+  const sub=`${esc(F.vibe)} · ${esc((findMonths().find(m=>m[0]===F.month)||['',''])[1])} · ${F.nights} nights · ${esc(from)}`;
+  const head=findHead(title, sub, `<button class="round" data-act="findAgain" aria-label="Change what you’re looking for">${I('M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M14 4v4M8 10v4M16 16v4',20,2.2)}</button>`);
+  if(!all.length) return { main:`<div class="pad">${head}<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h2 style="margin:0">No ideas this time</h2><p class="muted" style="margin:0">Try another month, more budget or a different kind of trip.</p><button class="btn" data-act="findAgain">Change the search</button></div></div>`, bottom:'' };
+  const n=cards.length+(ok.length&&over.length?1:0), cur=Math.min(F.card||0,n-1);
+  const overCard=ok.length&&over.length?`<article class="icard" aria-label="Just over budget"><div class="ibody" style="gap:14px"><div class="col" style="flex:none"><h2 style="margin:0;font-size:22px">Just over budget</h2><span class="sm muted">Worth a look if you can stretch a little</span></div>${over.map(x=>{ const i=all.indexOf(x); return `<div class="row" style="gap:12px;border-top:1px solid var(--line-subtle);padding-top:12px"><span style="width:72px;height:52px;border-radius:12px;overflow:hidden;flex:none;background:${SCENE_SKY[sceneKind(x)]}"><img src="img/scene-${sceneKind(x)}.webp" alt="" style="width:100%;height:100%;object-fit:cover;object-position:60% 100%"></span><span class="col" style="flex:1;min-width:0"><span class="b">${esc(x.place)}</span><span class="cap muted">${money(x.total)}${each} · <b style="color:var(--behind)">${money(x.over)} over</b></span></span><button class="btn s sec" data-pick="${i}" style="width:auto;padding:0 16px;flex:none">Plan</button></div>`; }).join('')}</div></article>`:'';
+  const main=`<div class="pad" style="padding-left:0;padding-right:0;gap:12px"><div style="padding:0 16px">${head}</div>
+  <div class="irow-scroll" id="ideaRow">${cards.map(x=>ideaCard(x,all.indexOf(x),F)).join('')}${overCard}</div>
+  <div class="idots" aria-hidden="true">${Array.from({length:n},(_,i)=>`<span class="${i===cur?'on':''}"></span>`).join('')}</div>
+  <p class="cap muted" style="margin:0 24px;font-size:12px;line-height:17px">Flight prices are recent fares on Aviasales and may not include a hold bag. Stay and spending money are Bagsy’s estimates. Bagsy never books or takes payment.</p></div>`;
+  return { main, bottom:'' };
+}
+function findView(){ const F=find; return F.step==='busy'?findBusy():F.step==='ideas'?findIdeas():findAsk(); }
+async function shareIdea(x){
+  const each=find&&find.people>1?' each':'', a=D(x.start), b=addDays(a,x.nights);
+  const text=`How about ${x.place}? ${a.getUTCDate()} ${MN[a.getUTCMonth()]} – ${b.getUTCDate()} ${MN[b.getUTCMonth()]}, about ${money(x.total)}${each} all in (${money(Math.ceil(x.total/monthsTo(x.start)))} a month${each} to save). ${x.why}`;
+  try{ if(navigator.share){ await navigator.share({ title:'Bagsy idea: '+x.place, text, url:location.origin+location.pathname }); return; }
+    await navigator.clipboard.writeText(text+' '+location.origin+location.pathname); showToast('Copied. Paste it into a message.'); }
+  catch(e){ if(e&&e.name!=='AbortError') showToast('Couldn’t share that. Try again.'); }
 }
 function planFromIdea(x){
   const ppl=find?find.people:2; startPlan();
@@ -625,9 +670,12 @@ document.addEventListener('click',async e=>{
   if(ds.yes){ const c=dueChecks().find(x=>x.part===ds.yes&&x.due===ds.due); if(c) logSaving(c.trip,c.part,c.amt,c.due); return; }
   if(ds.notyet){ const c=dueChecks().find(x=>x.part===ds.notyet&&x.due===ds.due); if(!c) return; try{ await api.reply(c.trip,c.part,c.due,'notyet'); await reload(); showToast('No problem. We’ll ask again on Monday.', async()=>{ await api.deleteReply(c.part,c.due); await reload(); }); }catch(err){ fail(err); } return; }
   if(ds.fvibe&&find){ find.vibe=ds.fvibe; render(); return; }
-  if(ds.fmonth&&find){ find.month=ds.fmonth; render(); return; }
-  if(ds.ffrom&&find){ find.from=ds.ffrom; render(); return; }
-  if(ds.fpeople&&find){ find.people=+ds.fpeople; render(); return; }
+  if(ds.fedit&&find){ find.edit=find.edit===ds.fedit?null:ds.fedit; render(); return; }
+  if(ds.fbq&&find){ find.budget=String(ds.fbq); render(); return; }
+  if(ds.shareidea&&find&&find.res){ const x=find.res.ideas[+ds.shareidea]; if(x) shareIdea(x); return; }
+  if(ds.fmonth&&find){ find.month=ds.fmonth; find.edit=null; render(); return; }
+  if(ds.ffrom&&find){ find.from=ds.ffrom; find.edit=null; render(); return; }
+  if(ds.fpeople&&find){ find.people=+ds.fpeople; find.edit=null; render(); return; }
   if(ds.fnights&&find){ find.nights=Math.min(21,Math.max(1,find.nights+(+ds.fnights))); render(); return; }
   if(ds.pick&&find&&find.res){ const x=find.res.ideas[+ds.pick]; if(x) planFromIdea(x); return; }
   if(ds.ttype&&plan){ setPlanType(ds.ttype); render(); return; }
@@ -682,6 +730,7 @@ document.addEventListener('click',async e=>{
     case 'findBack': if(find&&find.step==='ideas'){ find.step='ask'; render(); view.scrollTop=0; } else { const back=find&&find.fromPlan; find=null; if(back&&plan) UI.screen={name:'plan'}; else UI.screen={name:'tabs'}; render(); view.scrollTop=0; } break;
     case 'findGo': runFind(); break;
     case 'findAgain': find.step='ask'; render(); view.scrollTop=0; break;
+    case 'findDates': find.step='ask'; find.edit='month'; render(); view.scrollTop=0; break;
     case 'findFromPlan': openFind(); find.fromPlan=true; break;
     case 'home': UI.screen={name:'tabs'}; UI.tab='trips'; render(); break;
     case 'planback': if(plan.step>1){ plan.step--; render(); } else { plan=null; UI.screen={name:'tabs'}; render(); } view.scrollTop=0; break;
@@ -744,7 +793,9 @@ document.addEventListener('click',async e=>{
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='place'&&plan){ plan.place=t.value; plan.kind=null; const b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!(t.value.trim()&&(!plan.withPartner||plan.partnerName.trim())); document.querySelectorAll('[data-place]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.place===t.value)); const sp=document.getElementById('scenePrev'); if(sp){ sp.innerHTML=scene({place:t.value}); sp.setAttribute('style',sceneBg({place:t.value})); } document.querySelectorAll('[data-kind]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.kind===sceneKind({place:t.value}))); }
-  if(t.id==='fbudget'&&find){ find.budget=t.value.replace(/[^\d]/g,''); const b=document.querySelector('[data-act=findGo]'); if(b) b.disabled=!(+find.budget>=50); }
+  if(t.id==='fbudget'&&find){ find.budget=t.value.replace(/[^\d]/g,''); const b=document.querySelector('[data-act=findGo]'); if(b) b.disabled=!(+find.budget>=50);
+    const each=find.people>1?' each':'', m=document.getElementById('fmonthly'); if(m) m.innerHTML=`That’s about <b>${money(Math.ceil((+find.budget||0)/Math.max(1,monthsTo(find.month+'-15'))))} a month${each}</b> if you go in ${monthName(find.month)}`;
+    document.querySelectorAll('[data-fbq]').forEach(c=>c.setAttribute('aria-pressed',+c.dataset.fbq===+find.budget)); }
   if(t.id==='fnotes'&&find){ find.notes=t.value; }
   if(t.id==='pname'&&plan){ plan.partnerName=t.value; const b=document.querySelector('[data-act=planNext]'); if(b) b.disabled=!(plan.place.trim()&&t.value.trim()); }
   if(t.id==='start'&&plan&&t.value) plan.start=t.value;
@@ -774,6 +825,7 @@ document.addEventListener('change',e=>{
   if(t.id==='start'&&plan) fixDues();
   if(t.dataset.cost!==undefined&&plan) render();
 });
+document.addEventListener('scroll',e=>{ const r=e.target; if(!r||r.id!=='ideaRow'||!find) return; const w=(r.firstElementChild||{}).offsetWidth||1; const i=Math.round(r.scrollLeft/(w+12)); if(i!==find.card){ find.card=i; document.querySelectorAll('.idots span').forEach((d,k)=>d.classList.toggle('on',k===i)); } },true);
 document.addEventListener('toggle',e=>{ if(e.target.id==='pdet'&&sheet) sheet.open=e.target.open; },true);
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&sheet&&sheet.type!=='onboard'){ sheet=null; renderLayer(); }
