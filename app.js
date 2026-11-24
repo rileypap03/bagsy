@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='949657f7';
+window.BAGSY_VERSION='c9fb400c';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -668,14 +668,16 @@ function logSheet(){
 }
 /* pick a bag and a strap colour */
 function avatarControls(d,big=128){
-  return `<div style="display:grid;place-items:center;padding:4px 0">${bagImg(d.bag,d.col,big,'bagav big')}</div>
+  return `${big?`<div style="display:grid;place-items:center;padding:4px 0">${bagImg(d.bag,d.col,big,'bagav big')}</div>`:''}
   <div style="display:flex;flex-direction:column;gap:8px"><span class="b">Your bag</span><div class="bagpick" role="group" aria-label="Your bag">${BAGS.map(b=>`<button data-avk="bag" data-avv="${b}" aria-pressed="${d.bag===b}" aria-label="${BAG_NAMES[b]}">${bagImg(b,d.col,56)}</button>`).join('')}</div></div>
   <div style="display:flex;flex-direction:column;gap:8px"><span class="b">Strap colour</span><div class="chips" role="group" aria-label="Strap colour">${COL_ORDER.map(c=>`<button class="sw" style="background:${BAG_SWATCH[c]}" data-avk="col" data-avv="${c}" aria-pressed="${d.col===c}" aria-label="${c}"></button>`).join('')}</div><span class="cap muted">Your trip partner sees your bag next to your name. If you both pick the same colour, theirs shifts on your phone so you can tell you apart.</span></div>`;
 }
 function avatarSheet(){
   const d=sheet.draft;
-  return wrap('avatar','avt',`${sheetHead('avt','You')}<label class="b" for="nm2">Your first name</label><input id="nm2" class="field" value="${esc(sheet.name)}">${avatarControls(d,84)}<button class="btn" data-act="saveMe" ${busy?'disabled':''}>Save</button>`);
+  // compact so it fits one screen: the bag preview sits beside the name instead of above the picker
+  return wrap('avatar','avt',`${sheetHead('avt','You')}<div class="row" style="gap:14px;align-items:flex-end"><div class="col" style="gap:8px;flex:1"><label class="b" for="nm2">Your first name</label><input id="nm2" class="field" value="${esc(sheet.name)}"></div><div style="width:76px;height:76px;flex:none;display:grid;place-items:center">${bagImg(d.bag,d.col,76,'bagav')}</div></div>${avatarControls(d,0)}<button class="btn" data-act="saveMe" ${busy?'disabled':''}>Save</button>`);
 }
+
 async function loadInvite(s){ try{ s.preview = await api.invitePreview(s.code); }catch(e){ s.preview=null; s.err=friendly(e); } if(sheet===s) renderLayer(); }
 function joinSheet(){
   const s=sheet, p=s.preview, already=A.trips.some(t=>t.code===s.code);
