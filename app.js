@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='9d35ce1f';
+window.BAGSY_VERSION='949657f7';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -83,7 +83,7 @@ let topCol=''; // last colour painted behind the status bar
 let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
 const rgbOf=c=>{ if(c[0]==='#'){ const n=parseInt(c.slice(1),16); return [n>>16&255,n>>8&255,n&255]; } return (c.match(/\d+/g)||[0,0,0]).slice(0,3).map(Number); };
 const dim=(c,a)=>{ const [r,g,b]=rgbOf(c); return `rgb(${Math.round(r*(1-a)+17*a)},${Math.round(g*(1-a)+18*a)},${Math.round(b*(1-a)+20*a)})`; };
-const splashCol='#EDB54C'; // the new splash's background as an iPhone actually shows it (measured from a screenshot, 24 Nov)
+const splashCol='#ECB54E'; // the new splash's background as an iPhone actually shows it (measured from a screenshot, 24 Nov)
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
 if(params.get('surprise')) ls.set('bagsy-open-surprise', params.get('surprise'));

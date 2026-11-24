@@ -42,7 +42,7 @@ let topCol=''; // last colour painted behind the status bar
 let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
 const rgbOf=c=>{ if(c[0]==='#'){ const n=parseInt(c.slice(1),16); return [n>>16&255,n>>8&255,n&255]; } return (c.match(/\d+/g)||[0,0,0]).slice(0,3).map(Number); };
 const dim=(c,a)=>{ const [r,g,b]=rgbOf(c); return `rgb(${Math.round(r*(1-a)+17*a)},${Math.round(g*(1-a)+18*a)},${Math.round(b*(1-a)+20*a)})`; };
-const splashCol='#EDB54C'; // the new splash's background as an iPhone actually shows it (measured from a screenshot, 24 Nov)
+const splashCol='#ECB54E'; // the new splash's background as an iPhone actually shows it (measured from a screenshot, 24 Nov)
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
 if(params.get('surprise')) ls.set('bagsy-open-surprise', params.get('surprise'));
