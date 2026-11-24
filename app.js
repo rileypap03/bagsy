@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='a069b626';
+window.BAGSY_VERSION='08e61b5b';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -320,6 +320,7 @@ function trips(){
   const live=A.trips.filter(t=>tripEnd(t)>=TODAY), past=A.trips.filter(t=>tripEnd(t)<TODAY), checks=dueChecks();
   let h=`<div class="pad">${banner()}<div class="top"><h1>Trips</h1><button class="round" data-act="plan" aria-label="Plan a trip">${I(IC.plus,18,2.4)}</button></div>`;
   h+=forMeCards();
+  if(UI.firstPreview) return `<div class="pad">${banner()}<h1 class="sr">Trips</h1>`+firstTrip()+`<button class="link" data-act="firstBack" style="align-self:center">Back to my trips</button></div>`;
   if(!live.length&&!past.length&&!h.includes('data-reveal')&&!forMeCards()) return `<div class="pad">${banner()}<h1 class="sr">Trips</h1>`+firstTrip()+`</div>`;
   if(!live.length) h+=`<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h1 style="font-size:24px">Where to next?</h1><p class="muted" style="margin:0">Plan a trip, split it into parts, and invite the person you’re going with.</p><button class="btn" data-act="plan">Plan a trip</button><button class="btn sec" data-act="find">Help me choose where</button></div>`;
   else { h+=`<h2>Coming up</h2>`; for(const t of live){ const tot=total(t),sv=savedOf(t),pct=tot?Math.round(sv/tot*100):0, pt=partnerOf(t);
@@ -403,7 +404,10 @@ function you(){
   ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,44,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
   <h2>Notifications</h2>${notifyCard(standalone,ios)}
   ${standalone?'':`<h2>Put Bagsy on your home screen</h2><div class="card sm" style="display:flex;flex-direction:column;gap:6px">${ios?`<span>1. Open this page in <b>Safari</b>.</span><span>2. Tap the Share button, then <b>Add to Home Screen</b>.</span><span>3. Open Bagsy from your home screen and sign in once more.</span>`:`<span>Open your browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.</span>`}</div>`}
-  <button class="link" data-act="howItWorks" style="align-self:flex-start;margin:4px 8px 0">How Bagsy works</button>
+  <h2>Getting started</h2><div class="card" style="padding:4px 16px">
+    <button class="row fbrow" data-act="howItWorks"><span class="col"><span class="b">How Bagsy works</span><span class="cap muted">The three intro cards new people see</span></span><span class="muted" aria-hidden="true">${I(IC.chev,18,2.2)}</span></button>
+    <button class="row fbrow" data-act="tipsReset" style="border-top:1px solid var(--line-subtle)"><span class="col"><span class="b">Show the trip tips again</span><span class="cap muted">They appear next time you open a trip</span></span><span class="muted" aria-hidden="true">${I(IC.chev,18,2.2)}</span></button>
+    <button class="row fbrow" data-act="firstPreview" style="border-top:1px solid var(--line-subtle)"><span class="col"><span class="b">See the first-trip screen</span><span class="cap muted">What someone with no trips sees after signing up</span></span><span class="muted" aria-hidden="true">${I(IC.chev,18,2.2)}</span></button></div>
   <h2>Help make Bagsy better</h2><button class="card row fbcard" data-act="feedback"><span class="col"><span class="b">Send feedback</span><span class="cap muted">What’s confusing, broken or missing? Paul reads every one.</span></span><span class="muted" aria-hidden="true">${I(IC.chev,18,2.2)}</span></button>
   <button class="btn sec" data-act="signOut" style="margin-top:12px">Sign out</button>
   ${api.preview?`<h2>Preview tools</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><span class="cap muted">Pretend to be someone else to test the partner side. Sign out, then create another account with a different email.</span>${api._users().filter(u=>u.id!==user.id).map(u=>`<button class="btn s sec" data-switch="${u.id}">Switch to ${esc(u.name||u.email)}</button>`).join('')}<button class="btn s sec" data-act="wipe">Wipe preview data</button></div>`:''}
@@ -794,7 +798,7 @@ document.addEventListener('click',async e=>{
   const el=e.target.closest('button,[data-act],.scrim'); if(!el) return;
   if(e.target.closest('[data-stop]') && el.classList.contains('scrim')) return;
   const ds=el.dataset;
-  if(ds.tab){ UI.tab=ds.tab; UI.screen={name:'tabs'}; render(); view.scrollTop=0; return; }
+  if(ds.tab){ UI.firstPreview=false; UI.tab=ds.tab; UI.screen={name:'tabs'}; render(); view.scrollTop=0; return; }
   if(ds.open){ UI.screen={name:'trip',id:ds.open}; render(); view.scrollTop=0; return; }
   if(ds.part){ const t=trip(UI.screen.id), p=t.parts.find(x=>x.id===ds.part); sheet={type:'saving',trip:t.id,part:p.id,draft:{method:p.method==='none'?'pot':p.method,freq:p.freq,amt:p.amt,into:p.into,checks:p.checks,name:p.name,cost:p.cost,due:p.due,owner:ownerKey(t,p),depOn:p.deposit>0,dep:p.deposit||'',depDue:p.depositDue||iso(addDays(TODAY,14))}}; renderLayer(); return; }
   if(ds.log){ const t=trip(ds.log); const pick=ds.for||(t.parts.find(x=>ownerKey(t,x)===(ds.who||user.id)&&x.saved<x.cost)||{}).id; sheet={type:'log',trip:t.id,draft:{part:pick,amt:ds.amt0?Math.round(+ds.amt0*100)/100:''}}; renderLayer(); return; }
@@ -941,6 +945,9 @@ document.addEventListener('click',async e=>{
     case 'introDone': ls.set('bagsy-intro',1); if(introOpen){ introOpen=false; intro=-1; } else intro=-1; render(); break;
     case 'introUp': ls.set('bagsy-intro',1); intro=-1; auth.mode='up'; auth.err=''; render(); break;
     case 'introIn': ls.set('bagsy-intro',1); intro=-1; auth.mode='in'; auth.err=''; render(); break;
+    case 'tipsReset': ls.set('bagsy-tips',0); showToast('Done. Open a trip to see the tips.'); break;
+    case 'firstPreview': UI.firstPreview=true; UI.tab='trips'; UI.screen={name:'tabs'}; render(); view.scrollTop=0; break;
+    case 'firstBack': UI.firstPreview=false; render(); break;
     case 'howItWorks': introOpen=true; intro=0; render(); view.scrollTop=0; break;
     case 'tipNext': endTip(ls.get('bagsy-tips',0)+1); break;
     case 'tipSkip': endTip(3); break;
