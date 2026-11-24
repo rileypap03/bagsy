@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='ec5189d1';
+window.BAGSY_VERSION='5a462cb7';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -81,6 +81,9 @@ let UI = { tab:'trips', screen:{name:'tabs'} };
 let plan=null, sheet=null, toast=null, toastTimer=null, auth={ mode:'in', email:'', err:'', sending:false };
 let topCol=''; // last colour painted behind the status bar
 let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
+const rgbOf=c=>{ if(c[0]==='#'){ const n=parseInt(c.slice(1),16); return [n>>16&255,n>>8&255,n&255]; } return (c.match(/\d+/g)||[0,0,0]).slice(0,3).map(Number); };
+const dim=(c,a)=>{ const [r,g,b]=rgbOf(c); return `rgb(${Math.round(r*(1-a)+17*a)},${Math.round(g*(1-a)+18*a)},${Math.round(b*(1-a)+20*a)})`; };
+let splashCol='#ECB64C';
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
 if(params.get('surprise')) ls.set('bagsy-open-surprise', params.get('surprise'));
@@ -332,7 +335,7 @@ function activity(){
   if(!rows.length&&!checks.length) h+=`<div class="card" style="text-align:center"><p class="muted" style="margin:0">Nothing yet. When you or your partner plan, log or change something, it shows up here.</p></div>`;
   const mon=addDays(TODAY,-((TODAY.getUTCDay()+6)%7)), lab=day=>{ const x=D(day), n=Math.round((TODAY-x)/DAY); return n<=0?'Today':n===1?'Yesterday':x>=mon?'Earlier this week':x>=addDays(mon,-7)?'Last week':'Earlier'; };
   const groups={}; for(const r of rows){ const g=lab(localDay(r.e.created_at)); (groups[g]=groups[g]||[]).push(r); }
-  for(const g of ['Today','Yesterday','Earlier this week','Last week','Earlier']) if(groups[g]){ h+=`<div class="grp">${g}</div><div class="card" style="padding:4px 16px">`+groups[g].map(({e,t},i)=>{
+  for(const g of ['Today','Yesterday','Earlier this week','Last week','Earlier']) if(groups[g]){ h+=`<h2>${g}</h2><div class="card" style="padding:4px 16px">`+groups[g].map(({e,t},i)=>{
     const x=AKIND(e,t), dd=new Date(e.created_at), when=g==='Today'||g==='Yesterday'?dd.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):g==='Earlier'?fmt(D(localDay(e.created_at)),false):DN[dd.getDay()];
     const lead = x.lead&&x.lead.startsWith('part:')?partIcon(x.lead.slice(5)).replace('class="ico img"','class="ico img" style="width:36px;height:36px"').replace('<img ','<img style="width:40px;height:40px;margin:-2px" '):av(e.user_id,40,t);
     return `<div class="row" style="align-items:flex-start;padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${lead}<div class="col"><span style="font-weight:500">${x.text}</span><span class="cap muted">${when}${x.meta?' · '+x.meta:''}</span></div>${x.amt?`<div class="col" style="flex:none;align-items:flex-end"><span class="b">${esc(x.amt)}</span><span class="cap ${x.k||'muted'}" style="font-weight:500">${esc(x.tag||'')}</span></div>`:''}</div>`; }).join('')+`</div>`; }
@@ -598,7 +601,13 @@ function showSplash(){
   const el=document.createElement('div'); el.className='splash'; el.id='splash';
   el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video>`;
   document.getElementById('phone').appendChild(el); topCol=''; topTint();
-  const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash; v.onerror=()=>setTimeout(endSplash,800);
+  const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash;
+  /* colour the status-bar strip from the top edge of the video as it plays (the shot's yellow drifts a little) */
+  const cv=document.createElement('canvas'); cv.width=16; cv.height=2; const cx=cv.getContext('2d',{willReadFrequently:true});
+  const sample=()=>{ try{ const vw=v.videoWidth, vh=v.videoHeight; if(!vw) return; const W=el.clientWidth, H=el.clientHeight, k=Math.max(W/vw,H/vh), sy=Math.max(0,(vh*k-H)/2/k), sx=Math.max(0,(vw*k-W)/2/k);
+    cx.drawImage(v,sx,sy,vw-2*sx,Math.max(2,vh*.006),0,0,16,2); const d=cx.getImageData(0,0,16,2).data; let r=0,g=0,b=0; for(let i=0;i<d.length;i+=4){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; } const n=d.length/4;
+    splashCol=`rgb(${r/n|0},${g/n|0},${b/n|0})`; topTint(); }catch(e){} };
+  v.addEventListener('loadeddata',sample); v.addEventListener('timeupdate',sample); v.onerror=()=>setTimeout(endSplash,800);
   /* if the phone won't autoplay (Low Power Mode does this), show the finished splash still for a moment instead of a play button */
   let still=false; const fallback=()=>{ if(still||splashSeen) return; still=true; v.remove(); const im=document.createElement('img'); im.src='img/splash-end.jpg'; im.alt=''; im.style.cssText='width:100%;height:100%;object-fit:cover'; el.insertBefore(im,el.firstChild); setTimeout(endSplash,1100); };
   const go=()=>v.play().catch(fallback); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) fallback(); },900); setTimeout(endSplash,7000);
@@ -607,7 +616,7 @@ function showSplash(){
 function setTheme(c){ if(innerWidth<520){ document.documentElement.style.background=c; document.body.style.background=c; } }
 function clearTheme(){ topCol=''; setTimeout(topTint,0); document.documentElement.style.background=''; document.body.style.background=''; document.documentElement.classList.add('app'); }
 function endSplash(){ if(splashSeen) return; splashSeen=true; clearTheme(); topCol=''; topTint(); const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
-const sheetHead = (id,title,sub) => `<span class="grab" aria-hidden="true"></span><div class="row"><div class="col"><span id="${id}" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${title}</span>${sub?`<span class="cap muted">${sub}</span>`:''}</div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div>`;
+const sheetHead = (id,title,sub) => `<div class="shead"><span class="grab" aria-hidden="true"></span><div class="row"><div class="col"><span id="${id}" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${title}</span>${sub?`<span class="cap muted">${sub}</span>`:''}</div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div></div>`;
 const wrap = (type,id,inner) => `<div class="scrim" data-act="closeSheet"><div class="sheet" data-type="${type}" role="dialog" aria-modal="true" aria-labelledby="${id}" data-stop>${inner}</div></div>`;
 function savingSheet(){
   const t=trip(sheet.trip), p=t&&t.parts.find(x=>x.id===sheet.part); if(!p){ sheet=null; return ''; }
@@ -662,14 +671,14 @@ function logSheet(){
   <span class="cap muted row" style="justify-content:center;gap:6px">${I(IC.lock,14,2)} Logging only records it. Bagsy never moves your money.</span>`);
 }
 /* pick a bag and a strap colour */
-function avatarControls(d){
-  return `<div style="display:grid;place-items:center;padding:4px 0">${bagImg(d.bag,d.col,128,'bagav big')}</div>
+function avatarControls(d,big=128){
+  return `<div style="display:grid;place-items:center;padding:4px 0">${bagImg(d.bag,d.col,big,'bagav big')}</div>
   <div style="display:flex;flex-direction:column;gap:8px"><span class="b">Your bag</span><div class="bagpick" role="group" aria-label="Your bag">${BAGS.map(b=>`<button data-avk="bag" data-avv="${b}" aria-pressed="${d.bag===b}" aria-label="${BAG_NAMES[b]}">${bagImg(b,d.col,56)}</button>`).join('')}</div></div>
   <div style="display:flex;flex-direction:column;gap:8px"><span class="b">Strap colour</span><div class="chips" role="group" aria-label="Strap colour">${COL_ORDER.map(c=>`<button class="sw" style="background:${BAG_SWATCH[c]}" data-avk="col" data-avv="${c}" aria-pressed="${d.col===c}" aria-label="${c}"></button>`).join('')}</div><span class="cap muted">Your trip partner sees your bag next to your name. If you both pick the same colour, theirs shifts on your phone so you can tell you apart.</span></div>`;
 }
 function avatarSheet(){
   const d=sheet.draft;
-  return wrap('avatar','avt',`${sheetHead('avt','You')}<label class="b" for="nm2">Your first name</label><input id="nm2" class="field" value="${esc(sheet.name)}">${avatarControls(d)}<button class="btn" data-act="saveMe" ${busy?'disabled':''}>Save</button>`);
+  return wrap('avatar','avt',`${sheetHead('avt','You')}<label class="b" for="nm2">Your first name</label><input id="nm2" class="field" value="${esc(sheet.name)}">${avatarControls(d,84)}<button class="btn" data-act="saveMe" ${busy?'disabled':''}>Save</button>`);
 }
 async function loadInvite(s){ try{ s.preview = await api.invitePreview(s.code); }catch(e){ s.preview=null; s.err=friendly(e); } if(sheet===s) renderLayer(); }
 function joinSheet(){
@@ -959,11 +968,13 @@ function miniBar(){ const mb=document.querySelector('#chrome .minibar'), m=docum
   const show=m.getBoundingClientRect().bottom<80; if(show===mb.classList.contains('on')) return;
   mb.classList.toggle('on',show); if(show){ mb.removeAttribute('inert'); mb.removeAttribute('aria-hidden'); } else { mb.setAttribute('inert',''); mb.setAttribute('aria-hidden','true'); } }
 function topTint(){ const bar=document.getElementById('topbar'); if(!bar) return; const m=document.querySelector('#view .mast'); let c='#F1F3F2';
-  if(document.getElementById('splash')&&!splashSeen) c='#F0B64A'; // the video's own top yellow, so there's no seam
+  if(document.getElementById('splash')&&!splashSeen) c=splashCol; // sampled from the video's own top edge, so the strip always matches
   if(m&&m.dataset.sky){ const r=m.getBoundingClientRect(); if(r.bottom>bar.offsetHeight+60) c=m.dataset.sky; }
+  if(layer.querySelector('.scrim')) c=dim(c,.5); // a sheet is open: darken the strip with the same scrim
   if(c===topCol) return; topCol=c; bar.style.background=c; const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); }
 document.getElementById('view').addEventListener('scroll',()=>{ topTint(); miniBar(); },{passive:true});
 new MutationObserver(topTint).observe(document.getElementById('view'),{childList:true});
+new MutationObserver(topTint).observe(layer,{childList:true});
 topTint();
 
 document.addEventListener('focusin',e=>{ if(e.target.id==='samt') setTimeout(()=>e.target.select(),0); });

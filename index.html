@@ -151,7 +151,6 @@ details summary::-webkit-details-marker{display:none}
 html,body{background:var(--surface-page)}   /* light grey from the start: Safari and the home-screen app colour the status bar from this */
 html.app,html.app body{background:var(--surface-page)}
 @media(min-width:520px){html,body,html.app,html.app body{background:#2A2C30}}
-.splash .skip{top:calc(env(safe-area-inset-top) + 16px)}
 /* deposit marker on a part's progress bar */
 .depmark{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--brass-darkest);border-radius:1px}
 .bar:has(.depmark){overflow:visible}
@@ -183,7 +182,7 @@ img.scene{position:absolute;left:0;bottom:0;width:100%;height:auto;display:block
 /* iOS date inputs ignore width:100% and overflow the card */
 input[type=date].field{display:block;min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left;line-height:45px}
 input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
-#topbar{position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top),12px);z-index:200;pointer-events:none;background:#F1F3F2}
+#topbar{position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top),12px);z-index:200;pointer-events:none;background:#F1F3F2;transition:background-color .2s}
 @media(min-width:520px){#topbar{display:none}}
 .amtin{display:inline-flex;align-items:baseline;justify-content:center;gap:1px;font-size:32px;line-height:36px;font-weight:700;letter-spacing:-.03em;padding:2px 10px;border-radius:10px;border-bottom:2px dashed var(--line-control);cursor:text}
 .amtin input{font:inherit;letter-spacing:inherit;color:inherit;border:0;background:transparent;padding:0;min-width:1.6ch;max-width:7ch;text-align:left;outline:none}
@@ -286,13 +285,15 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 @media (prefers-reduced-motion: reduce){.toast{animation:none}}
 /* splash: video's own yellow behind it while it loads */
 .splash{background:linear-gradient(#F0B64A,#E9AF45);overflow:hidden}
-/* the video fills the whole screen, behind the clock too, so there's no separate strip to mismatch */
-.splash{top:0}
-body:has(#splash) #topbar{background:transparent!important}
+/* the status-bar strip above the splash takes its colour from the video itself (see showSplash) */
 
 /* feedback card on You */
 .fbcard{width:100%;text-align:left;border:0;font:inherit;color:inherit;cursor:pointer;gap:12px;align-items:center}
 .fbcard .col{flex:1}
+
+/* sheets: title and close stay put while the sheet scrolls; the main button stays in reach */
+.shead{position:sticky;top:-8px;z-index:3;background:#fff;margin:-8px -16px -6px;padding:8px 16px 8px;display:flex;flex-direction:column;gap:12px}
+.sheet>.btn:last-child{position:sticky;bottom:calc(-28px - env(safe-area-inset-bottom));z-index:3;flex:none;box-shadow:0 0 0 12px #fff,0 calc(28px + env(safe-area-inset-bottom)) 0 12px #fff;margin-top:4px}
 
 </style>
 </head>
