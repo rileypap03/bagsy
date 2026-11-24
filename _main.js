@@ -1058,7 +1058,7 @@ function forMeCards(){
 function showReveal(x){
   if(!x||document.getElementById('reveal')) return;
   const st={place:x.place,kind:x.kind}, el=document.createElement('div'); el.id='reveal'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Your surprise');
-  el.style.background=SCENE_SKY[sceneKind(st)]; el.innerHTML=`<div class="rv-scene" style="${sceneBg(st)}">${scene(st)}</div><div class="rv-in"><span class="rv-from">${esc(x.from_name||'Someone')} has bagsied you…</span><span class="rv-place">${esc(x.place)}</span><span class="rv-dates">${sDates(x.start_date,x.nights)}</span>${x.hint?`<span class="rv-hint">🧳 ${esc(x.hint)}</span>`:''}<span class="rv-bag">${av(user.id,176)}</span><button class="btn" data-act="closeReveal">Woohoo!</button></div>`;
+  el.style.background=SCENE_SKY[sceneKind(st)]; el.innerHTML=`<div class="rv-scene" style="${sceneBg(st)}">${scene(st)}</div><div class="rv-in"><span class="rv-from">${esc(x.from_name||'Someone')} has bagsied you…</span><span class="rv-place">${esc(x.place)}</span><span class="rv-dates">${sDates(x.start_date,x.nights)}</span>${x.hint?`<span class="rv-hint">🧳 ${esc(x.hint)}</span>`:''}<button class="btn" data-act="closeReveal">Woohoo!</button></div>`;
   document.body.appendChild(el); requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('on')));
   const seen=ls.get('bagsy-seen-surprises',[]); if(!seen.includes(x.trip_id)){ seen.push(x.trip_id); ls.set('bagsy-seen-surprises',seen); }
 }
