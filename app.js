@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='5a462cb7';
+window.BAGSY_VERSION='9e9d8333';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -599,9 +599,10 @@ function renderLayer(){
 function showSplash(){
   document.documentElement.classList.add('app');
   const el=document.createElement('div'); el.className='splash'; el.id='splash';
-  el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video>`;
+  el.innerHTML=`<video id="sv" src="splash.mp4?v=${window.BAGSY_VERSION||1}" autoplay muted playsinline preload="auto" aria-label="Bagsy splash: the trip parts drop into a suitcase and the lid shuts"></video><img class="splogo" src="img/bagsy-black.svg" alt="Bagsy">`;
   document.getElementById('phone').appendChild(el); topCol=''; topTint();
-  const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=endSplash;
+  const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=()=>setTimeout(endSplash,1000); // hold on the shut case and the logo for a beat
+  const logo=el.querySelector('.splogo'); v.addEventListener('timeupdate',()=>{ if(v.currentTime>=2.42) logo.classList.add('on'); }); // the lid shuts at about 2.45s
   /* colour the status-bar strip from the top edge of the video as it plays (the shot's yellow drifts a little) */
   const cv=document.createElement('canvas'); cv.width=16; cv.height=2; const cx=cv.getContext('2d',{willReadFrequently:true});
   const sample=()=>{ try{ const vw=v.videoWidth, vh=v.videoHeight; if(!vw) return; const W=el.clientWidth, H=el.clientHeight, k=Math.max(W/vw,H/vh), sy=Math.max(0,(vh*k-H)/2/k), sx=Math.max(0,(vw*k-W)/2/k);
@@ -609,7 +610,7 @@ function showSplash(){
     splashCol=`rgb(${r/n|0},${g/n|0},${b/n|0})`; topTint(); }catch(e){} };
   v.addEventListener('loadeddata',sample); v.addEventListener('timeupdate',sample); v.onerror=()=>setTimeout(endSplash,800);
   /* if the phone won't autoplay (Low Power Mode does this), show the finished splash still for a moment instead of a play button */
-  let still=false; const fallback=()=>{ if(still||splashSeen) return; still=true; v.remove(); const im=document.createElement('img'); im.src='img/splash-end.jpg'; im.alt=''; im.style.cssText='width:100%;height:100%;object-fit:cover'; el.insertBefore(im,el.firstChild); setTimeout(endSplash,1100); };
+  let still=false; const fallback=()=>{ if(still||splashSeen) return; still=true; v.remove(); const im=document.createElement('img'); im.src='img/splash-end.jpg'; im.alt=''; im.style.cssText='width:100%;height:100%;object-fit:cover'; el.insertBefore(im,el.firstChild); logo.classList.add('on'); setTimeout(endSplash,1400); };
   const go=()=>v.play().catch(fallback); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) fallback(); },900); setTimeout(endSplash,7000);
 
 }

@@ -172,3 +172,10 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 /* sheets: title and close stay put while the sheet scrolls; the main button stays in reach */
 .shead{position:sticky;top:-8px;z-index:3;background:#fff;margin:-8px -16px -6px;padding:8px 16px 8px;display:flex;flex-direction:column;gap:12px}
 .sheet>.btn:last-child{position:sticky;bottom:calc(-28px - env(safe-area-inset-bottom));z-index:3;flex:none;box-shadow:0 0 0 12px #fff,0 calc(28px + env(safe-area-inset-bottom)) 0 12px #fff;margin-top:4px}
+
+/* splash logo: drawn by the app (crisp, never garbled by the video), placed below the case as the lid shuts.
+   Sizes follow the video as object-fit:cover scales it, so it lands in the same spot on any screen. */
+.splash{container-type:size}
+.splash .splogo{position:absolute;left:50%;top:calc(max(100cqh,177.78cqw)*.699 - (max(100cqh,177.78cqw) - 100cqh)/2);width:calc(max(100cqw,56.25cqh)*.47);transform:translate(-50%,-50%) translateY(10px);opacity:0;transition:opacity .45s ease-out,transform .7s cubic-bezier(.22,1,.36,1);pointer-events:none}
+.splash .splogo.on{opacity:1;transform:translate(-50%,-50%)}
+@media(prefers-reduced-motion:reduce){.splash .splogo{transition:opacity .3s}}
