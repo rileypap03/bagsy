@@ -1,4 +1,4 @@
-window.BAGSY_VERSION='e963d728';
+window.BAGSY_VERSION='a069b626';
 {
 /* ---------- trip-type scenes: soft 3D illustrations, one per kind of trip ---------- */
 const PLACE_KIND = {lisbon:'coast',lisboa:'coast',barcelona:'coast',copenhagen:'city','københavn':'city',rome:'city',roma:'city',paris:'city',london:'city','new york':'city',tokyo:'city',berlin:'city',amsterdam:'city',bruges:'city',porto:'coast',madrid:'city',milan:'city',florence:'city',athens:'coast',nice:'coast',santorini:'coast',ibiza:'tropical',mallorca:'coast',bali:'tropical',cancun:'tropical',maldives:'tropical',dubai:'desert',marrakech:'desert',cairo:'desert',zermatt:'mountains',chamonix:'mountains',innsbruck:'mountains',reykjavik:'snow',cotswolds:'countryside',tuscany:'countryside',provence:'countryside',lapland:'snow',rovaniemi:'snow',tromsø:'snow',tromso:'snow','val thorens':'snow',courchevel:'snow',verbier:'snow','st anton':'snow',niseko:'snow',whistler:'snow','lake como':'lakes',como:'lakes','lake garda':'lakes',garda:'lakes',annecy:'lakes',lucerne:'lakes',luzern:'lakes',geneva:'lakes',bled:'lakes',hallstatt:'lakes','lake district':'lakes',windermere:'lakes',tenerife:'coast',lanzarote:'coast',crete:'coast',algarve:'coast',dubrovnik:'coast',split:'coast',phuket:'tropical',thailand:'tropical',mauritius:'tropical',barbados:'tropical',jamaica:'tropical','sri lanka':'tropical',prague:'city',vienna:'city',budapest:'city',seville:'city',krakow:'city',edinburgh:'city',petra:'desert',jordan:'desert','abu dhabi':'desert',wadi:'desert',scotland:'countryside',devon:'countryside',cornwall:'coast',dordogne:'countryside',yorkshire:'countryside'};
@@ -78,6 +78,8 @@ const ls = { get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JS
 let A = ls.get('bagsy-cache', null);     // last loaded data, for a fast, offline-friendly start
 let user = null, booting = true, offline = false, busy = false, loadErr = '';
 let UI = { tab:'trips', screen:{name:'tabs'} };
+/* intro cards: shown once before sign-in, or again from You → How Bagsy works */
+let intro = ls.get('bagsy-intro',0)?-1:0, introOpen=false;
 let plan=null, sheet=null, toast=null, toastTimer=null, auth={ mode:'in', email:'', err:'', sending:false };
 let topCol=''; // last colour painted behind the status bar
 let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
@@ -175,10 +177,12 @@ function av(key,s=40,t){
 
 /* ---------- rendering ---------- */
 function render(){
+  if(tipOn&&!(user&&UI.screen.name==='trip')){ document.getElementById('tipov')?.remove(); tipOn=false; }
   TODAY = (n=>new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate())))(new Date());
   let chrome='';
   if(booting){ view.innerHTML=`<div class="center"><span class="spin"></span></div>`; }
   else if(api.recovering()){ view.innerHTML=newPassword(); }
+  else if(introOpen||(!user&&intro>=0)){ view.innerHTML=introView(); }
   else if(!user){ view.innerHTML=signIn(); }
   else if(!A){ view.innerHTML=loadErr?`<div class="center" style="padding:24px;text-align:center"><p class="behind">${esc(loadErr)}</p><button class="btn sec" data-act="retry" style="max-width:240px">Try again</button><button class="link" data-act="signOut">Sign out</button></div>`:`<div class="center"><span class="spin"></span><p class="muted">Loading your trips…</p></div>`; }
   else if(!me().name){ view.innerHTML=onboarding(); }
@@ -189,7 +193,7 @@ function render(){
     if(UI.screen.name==='trip'&&!trip(UI.screen.id)) UI.screen={name:'tabs'};
     if(UI.screen.name==='tabs'&&UI.tab==='trips') setTimeout(checkReveal,0);
     if(UI.screen.name==='tabs'){ view.innerHTML = UI.tab==='trips'?trips():UI.tab==='activity'?activity():you(); chrome=tabbar(); }
-    else if(UI.screen.name==='trip'){ const t=trip(UI.screen.id); view.innerHTML = tripView(t);
+    else if(UI.screen.name==='trip'){ const t=trip(UI.screen.id); view.innerHTML = tripView(t); setTimeout(showTip,500);
       // compact bar that slides in once the scene has scrolled away, so Back and Settings are always in reach
       chrome=`<div class="minibar" aria-hidden="true" inert><button class="round" data-act="home" aria-label="Back">${I(IC.back)}</button><span class="b minititle">${flag(t)}${esc(t.place)}</span><button class="round" data-act="tripSettings" aria-label="Trip settings">${I(IC.gear,18,2)}</button></div>`; }
     else if(UI.screen.name==='plan'){ const r=planView(); view.innerHTML=r.main; chrome=`<div class="bottom">${r.bottom}</div>`; }
@@ -268,10 +272,55 @@ function onboarding(){
   ${avatarControls(d)}
   <button class="btn" data-act="finishOnboard">Let’s go</button></div></div>`;
 }
+const INTRO=[
+  { h:'Save for a trip together', p:'Plan one trip, split it into parts like flights, stay and spending money, and watch it fill up as you both save.' },
+  { h:'Each of you bagsies your part', p:'You each own the parts you’re saving for, so you can both see who’s on track. No chasing, no awkward money chats.' },
+  { h:'Your money stays in your bank', p:'Bagsy never holds or moves money. Save the way you already do, and tap to log it.' }];
+function introArt(i){
+  const im=(src,st)=>`<img src="img/${src}" alt="" style="position:absolute;${st}">`;
+  if(i===0) return `<div class="introart" style="background:#E9F3F6">${im('scene-coast.webp','left:0;right:0;bottom:0;width:100%;height:60%;object-fit:cover;object-position:50% 100%')}${im('plane.png','left:9%;top:10%;width:26%;transform:rotate(-8deg)')}${im('bed.png','right:8%;top:14%;width:25%')}${im('tickets.png','left:31%;top:34%;width:21%;transform:rotate(6deg)')}${im('wallet.png','right:26%;top:44%;width:20%')}</div>`;
+  const row=(bag,col,name,part,icon,amt,of,pct,st)=>`<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="row" style="gap:12px"><span class="av bag" style="width:48px;height:48px">${bagImg(bag,col,48)}</span><span class="col" style="flex:1"><span class="b" style="font-size:18px">${name}</span><span class="cap muted">bagsied ${part}</span></span><span class="sm b ok">${st}</span></div><div class="row" style="gap:12px"><img src="img/${icon}" alt="" style="width:48px;height:48px;object-fit:contain"><span class="col" style="flex:1;gap:8px"><span class="row" style="justify-content:space-between"><span style="font-weight:500">${part}</span><span><b>${amt}</b> <span class="muted">of ${of}</span></span></span><span class="bar"><i style="width:${pct}%"></i></span></span></div></div>`;
+  if(i===1) return `<div class="introart" style="background:#FFF4D6;padding:18px;display:flex;flex-direction:column;gap:12px;justify-content:center">${row('duffel','blue','Paul','Flights','plane.png','£336','£336',100,'Packed')}${row('tote','terracotta','Ines','Stay','bed.png','£240','£583',41,'On track')}</div>`;
+  const tick=t=>`<span class="row" style="gap:10px">${I(IC.tick,20,2.4).replace('currentColor','var(--ok)')}${t}</span>`;
+  return `<div class="introart" style="background:#EDF6EE;padding:22px 18px;display:flex;flex-direction:column;gap:16px;justify-content:center"><div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="row" style="gap:12px"><img src="img/wallet.png" alt="" style="width:48px;height:48px;object-fit:contain"><span class="col"><span class="b" style="font-size:16px">Did £20 go in?</span><span class="cap muted">Spending money · Tenerife · payday</span></span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" aria-hidden="true"><span class="btn s" style="display:grid;place-items:center">Yes, it went in</span><span class="btn s sec" style="display:grid;place-items:center">Not yet</span></div></div><div style="display:flex;flex-direction:column;gap:10px;padding:0 6px">${tick('Money stays in your own bank')}${tick('No bank login, no card details')}${tick('A nudge on payday, one tap to log')}</div></div>`;
+}
+function introView(){
+  const i=Math.max(0,intro), c=INTRO[i], last=i===INTRO.length-1;
+  return `<div class="intro" id="intro"><div class="row" style="justify-content:space-between;height:44px;padding:0 8px">${i?`<button class="round" data-act="introBack" aria-label="Back">${I(IC.back)}</button>`:`<img src="img/bagsy-black.svg" alt="Bagsy" style="height:26px">`}<button class="link" data-act="introDone" style="font-weight:600;color:var(--ink)">${introOpen?'Close':'Skip'}</button></div>
+  ${introArt(i)}<div style="padding:24px 8px 0;display:flex;flex-direction:column;gap:10px"><h1 style="font-size:30px;line-height:36px">${c.h}</h1><p class="muted" style="margin:0;font-size:16px;line-height:24px">${c.p}</p></div>
+  <div style="flex:1"></div><div class="introdots" aria-label="Card ${i+1} of ${INTRO.length}">${INTRO.map((_,k)=>`<span class="${k===i?'on':''}"></span>`).join('')}</div>
+  ${!last?`<button class="btn" data-act="introNext">Next</button>`:introOpen?`<button class="btn" data-act="introDone">Done</button>`:`<button class="btn" data-act="introUp">Create account</button><button class="link" data-act="introIn" style="align-self:center;font-weight:600;color:var(--ink);padding:12px">I already have an account</button>`}</div>`;
+}
+function firstTrip(){
+  return `<div style="padding:8px 8px 0;display:flex;flex-direction:column;gap:6px"><h1 style="font-size:34px;line-height:40px">Hi ${esc(me().name)}</h1><p class="muted" style="margin:0;font-size:16px;line-height:24px">Let’s plan your first trip. You can invite your partner once it’s planned.</p></div>
+  <button class="card row" data-act="plan" style="border:0;text-align:left;width:100%;gap:14px;padding:18px"><img src="img/plane.png" alt="" style="width:64px;height:64px;object-fit:contain"><span class="col" style="flex:1"><span class="b" style="font-size:18px">Plan a trip</span><span class="sm muted">You know where you’re going</span></span><span class="muted">${I(IC.chev,20,2.2)}</span></button>
+  <button class="card" data-act="find" style="border:0;text-align:left;width:100%;padding:0;overflow:hidden;display:flex;flex-direction:column"><img src="img/scene-city.webp" alt="" style="width:100%;height:120px;object-fit:cover;object-position:50% 100%;background:#E2EBEE"><span class="row" style="gap:14px;padding:16px 18px"><span class="col" style="flex:1"><span class="b" style="font-size:18px">Find ideas</span><span class="sm muted">Not sure where? Pick a feeling and a budget</span></span><span class="muted">${I(IC.chev,20,2.2)}</span></span></button>
+  <button class="dash" data-act="enterCode" style="justify-content:flex-start;gap:14px;padding:12px 18px;text-align:left"><img src="img/case.png" alt="" style="width:44px;height:44px;object-fit:contain"><span class="col"><span class="b">Got an invite code?</span><span class="sm muted" style="font-weight:400">Join your partner’s trip</span></span></button>`;
+}
+/* one-time tips on your first trip: how you'll save, Log a saving, invite your partner */
+let tipOn=false;
+function tipTargets(){ const t=trip(UI.screen.id); if(!t) return []; const pt=partnerOf(t);
+  return [ { el:document.querySelector('#view .setup')?.closest('[data-part]'), h:'Set up how you’ll save', p:'Tap a part to choose a pot and an amount. Bagsy nudges you on payday.' },
+           { el:document.querySelector('#view [data-log]'), h:'Put some money aside? Tap here to log it.', p:'Your partner sees it straight away, and the bar fills up.' },
+           { el:pt&&!pt.joined?document.querySelector('#view [data-act=share]'):null, h:`Invite ${pt?esc(pt.name):'your partner'}`, p:'Send the link. They sign in and their parts are waiting for them.' } ]; }
+function showTip(){
+  if(tipOn||sheet||UI.screen.name!=='trip') return; let n=ls.get('bagsy-tips',0); const ts=tipTargets();
+  while(n<3&&!(ts[n]&&ts[n].el)) n++;
+  if(n>=3){ ls.set('bagsy-tips',3); return; }
+  const tg=ts[n]; tipOn=true; tg.el.scrollIntoView({block:'center',behavior:'smooth'});
+  setTimeout(()=>{ const ph=document.getElementById('phone').getBoundingClientRect(), r=tg.el.getBoundingClientRect();
+    const top=r.top-ph.top, below=top+r.height+16, bub=190, up=below+bub>ph.height-24;
+    const el=document.createElement('div'); el.className='tipov'; el.id='tipov';
+    el.innerHTML=`<div class="tipspot" style="left:${r.left-ph.left-6}px;top:${top-6}px;width:${r.width+12}px;height:${r.height+12}px"></div>
+    <div class="tipbub${up?' up':''}" role="dialog" aria-label="Tip" style="${up?`bottom:${ph.height-top+16}px`:`top:${below}px`}"><span class="tipn">TIP ${n+1} OF 3</span><span class="tiph">${tg.h}</span><span class="tipp">${tg.p}</span><span class="row" style="justify-content:space-between"><button class="link" data-act="tipSkip" style="color:#B9BDBB">Skip tips</button><button class="btn s" data-act="tipNext" style="width:auto;padding:0 22px">Got it</button></span></div>`;
+    document.getElementById('phone').appendChild(el); topTint(); },420);
+}
+function endTip(next){ document.getElementById('tipov')?.remove(); tipOn=false; topTint(); ls.set('bagsy-tips',next); if(next<3) setTimeout(showTip,150); }
 function trips(){
   const live=A.trips.filter(t=>tripEnd(t)>=TODAY), past=A.trips.filter(t=>tripEnd(t)<TODAY), checks=dueChecks();
   let h=`<div class="pad">${banner()}<div class="top"><h1>Trips</h1><button class="round" data-act="plan" aria-label="Plan a trip">${I(IC.plus,18,2.4)}</button></div>`;
   h+=forMeCards();
+  if(!live.length&&!past.length&&!h.includes('data-reveal')&&!forMeCards()) return `<div class="pad">${banner()}<h1 class="sr">Trips</h1>`+firstTrip()+`</div>`;
   if(!live.length) h+=`<div class="card" style="text-align:center;padding:28px 20px;display:flex;flex-direction:column;gap:12px"><h1 style="font-size:24px">Where to next?</h1><p class="muted" style="margin:0">Plan a trip, split it into parts, and invite the person you’re going with.</p><button class="btn" data-act="plan">Plan a trip</button><button class="btn sec" data-act="find">Help me choose where</button></div>`;
   else { h+=`<h2>Coming up</h2>`; for(const t of live){ const tot=total(t),sv=savedOf(t),pct=tot?Math.round(sv/tot*100):0, pt=partnerOf(t);
     h+=`<button class="card" data-open="${t.id}" style="padding:0;overflow:hidden;border:0;text-align:left;width:100%"><div class="scenehead" style="${sceneBg(t)}">${scene(t)}<span class="pill" style="position:absolute;left:12px;top:12px">${flag(t)}${esc(t.place)}</span><span style="position:absolute;right:10px;top:6px;display:flex;gap:2px">${[user.id].concat(pt?[pt.id]:[]).map(p=>av(p,44,t)).join('')}</span></div>
@@ -354,6 +403,7 @@ function you(){
   ${Object.keys(partners).length?`<h2>Your people</h2><div class="card" style="padding:4px 16px">${Object.values(partners).map(({pt,t,trips},i)=>`<div class="row" style="padding:12px 0;${i?'border-top:1px solid var(--line-subtle)':''}">${av(pt.id,44,t)}<span class="b" style="flex:1">${esc(pt.name)}</span><span class="cap muted">${pt.joined?'':'Invited · '}${trips.map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
   <h2>Notifications</h2>${notifyCard(standalone,ios)}
   ${standalone?'':`<h2>Put Bagsy on your home screen</h2><div class="card sm" style="display:flex;flex-direction:column;gap:6px">${ios?`<span>1. Open this page in <b>Safari</b>.</span><span>2. Tap the Share button, then <b>Add to Home Screen</b>.</span><span>3. Open Bagsy from your home screen and sign in once more.</span>`:`<span>Open your browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.</span>`}</div>`}
+  <button class="link" data-act="howItWorks" style="align-self:flex-start;margin:4px 8px 0">How Bagsy works</button>
   <h2>Help make Bagsy better</h2><button class="card row fbcard" data-act="feedback"><span class="col"><span class="b">Send feedback</span><span class="cap muted">What’s confusing, broken or missing? Paul reads every one.</span></span><span class="muted" aria-hidden="true">${I(IC.chev,18,2.2)}</span></button>
   <button class="btn sec" data-act="signOut" style="margin-top:12px">Sign out</button>
   ${api.preview?`<h2>Preview tools</h2><div class="card" style="display:flex;flex-direction:column;gap:10px"><span class="cap muted">Pretend to be someone else to test the partner side. Sign out, then create another account with a different email.</span>${api._users().filter(u=>u.id!==user.id).map(u=>`<button class="btn s sec" data-switch="${u.id}">Switch to ${esc(u.name||u.email)}</button>`).join('')}<button class="btn s sec" data-act="wipe">Wipe preview data</button></div>`:''}
@@ -735,6 +785,11 @@ async function share(t){
 }
 
 /* ---------- events ---------- */
+/* swipe between intro cards */
+let introX=null;
+view.addEventListener('touchstart',e=>{ introX=document.getElementById('intro')?e.touches[0].clientX:null; },{passive:true});
+view.addEventListener('touchend',e=>{ if(introX==null) return; const dx=e.changedTouches[0].clientX-introX; introX=null;
+  if(Math.abs(dx)<50) return; const i=Math.max(0,intro); if(dx<0&&i<INTRO.length-1){ intro=i+1; render(); } else if(dx>0&&i>0){ intro=i-1; render(); } },{passive:true});
 document.addEventListener('click',async e=>{
   const el=e.target.closest('button,[data-act],.scrim'); if(!el) return;
   if(e.target.closest('[data-stop]') && el.classList.contains('scrim')) return;
@@ -881,6 +936,14 @@ document.addEventListener('click',async e=>{
       try{ const pt=partnerOf(t), c=cost||0, base={ trip_id:t.id, name, due, method:'none', position:t.parts.length, schedule_from:iso(TODAY) };
         if(d.owner==='split'&&pt){ const a=Math.ceil(c/2); await api.addPart({ ...base, cost:a, ...ownerFields(t,user.id), amount:Math.ceil(a/n), into_label:t.place+' pot' }); await api.addPart({ ...base, cost:c-a, ...ownerFields(t,pt.id), amount:Math.ceil((c-a)/n), into_label:'', position:t.parts.length+1 }); }
         else await api.addPart({ ...base, cost:c, ...ownerFields(t,d.owner), amount:Math.ceil(c/n), into_label:mine?t.place+' pot':'' }); await api.addActivity(t.id,'part',{ part:name, cost:cost||0 }); busy=false; sheet=null; await reload(); showToast(`${esc(name)} added.`); }catch(err){ busy=false; renderLayer(); fail(err); } break; }
+    case 'introNext': intro=Math.min(INTRO.length-1,Math.max(0,intro)+1); render(); break;
+    case 'introBack': intro=Math.max(0,intro-1); render(); break;
+    case 'introDone': ls.set('bagsy-intro',1); if(introOpen){ introOpen=false; intro=-1; } else intro=-1; render(); break;
+    case 'introUp': ls.set('bagsy-intro',1); intro=-1; auth.mode='up'; auth.err=''; render(); break;
+    case 'introIn': ls.set('bagsy-intro',1); intro=-1; auth.mode='in'; auth.err=''; render(); break;
+    case 'howItWorks': introOpen=true; intro=0; render(); view.scrollTop=0; break;
+    case 'tipNext': endTip(ls.get('bagsy-tips',0)+1); break;
+    case 'tipSkip': endTip(3); break;
     case 'signOut': await pushOff(true); await api.signOut(); user=null; A=null; ls.set('bagsy-cache',null); sheet=null; UI={tab:'trips',screen:{name:'tabs'}}; render(); break;
     case 'wipe': api._wipe(); ls.set('bagsy-cache',null); location.reload(); break;
   }
@@ -968,7 +1031,7 @@ function miniBar(){ const mb=document.querySelector('#chrome .minibar'), m=docum
 function topTint(){ const bar=document.getElementById('topbar'); if(!bar) return; const m=document.querySelector('#view .mast'); let c='#F1F3F2';
   if(document.getElementById('splash')&&!splashSeen) c=splashCol; // fixed: sampling the video read the colour differently from how the phone displays it, and flickered when items crossed the top edge
   if(m&&m.dataset.sky){ const r=m.getBoundingClientRect(); if(r.bottom>bar.offsetHeight+60) c=m.dataset.sky; }
-  if(layer.querySelector('.scrim')) c=dim(c,.5); // a sheet is open: darken the strip with the same scrim
+  if(layer.querySelector('.scrim')||document.getElementById('tipov')) c=dim(c,.5); // a sheet is open: darken the strip with the same scrim
   if(c===topCol) return; topCol=c; bar.style.background=c; const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); }
 document.getElementById('view').addEventListener('scroll',()=>{ topTint(); miniBar(); },{passive:true});
 new MutationObserver(topTint).observe(document.getElementById('view'),{childList:true});

@@ -307,6 +307,23 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 /* floating tab bar: clearer lift over white cards (Paul, 24 Nov) — hairline edge plus a layered shadow */
 .tabs{background:rgba(255,255,255,.8);border:1px solid rgba(17,18,20,.07);box-shadow:0 1px 2px rgba(17,18,20,.08),0 6px 16px rgba(17,18,20,.10),0 18px 40px rgba(17,18,20,.16),inset 0 1px 0 rgba(255,255,255,.9)}
 
+/* buttons are pills everywhere (Paul, 24 Nov): actions are round, cards are 16px, fields stay 12px */
+.btn{border-radius:999px}
+/* intro cards */
+.intro{min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;padding:12px 16px calc(24px + env(safe-area-inset-bottom))}
+.introart{margin-top:16px;height:min(330px,40vh);border-radius:24px;position:relative;overflow:hidden;flex:none;box-sizing:border-box}
+.introart .card{box-shadow:0 2px 12px rgba(17,18,20,.05)}
+.introdots{display:flex;justify-content:center;gap:6px;padding:20px 0}
+.introdots span{width:6px;height:6px;border-radius:3px;background:#C9CDCB;transition:width .3s cubic-bezier(.22,1,.36,1)}
+.introdots span.on{width:20px;background:var(--ink)}
+/* one-time tips */
+.tipov{position:absolute;inset:0;z-index:40;animation:fade .2s}
+.tipspot{position:absolute;border-radius:18px;box-shadow:0 0 0 9999px rgba(17,18,20,.5),0 0 0 3px var(--yellow);pointer-events:none}
+.tipbub{position:absolute;left:20px;right:20px;background:var(--ink);color:#fff;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.tipbub::before{content:"";position:absolute;top:-7px;left:calc(50% - 7px);width:14px;height:14px;background:var(--ink);transform:rotate(45deg)}
+.tipbub.up::before{top:auto;bottom:-7px}
+.tipn{font-size:12px;font-weight:700;letter-spacing:.04em;color:#B9BDBB}.tiph{font-size:17px;line-height:24px;font-weight:600}.tipp{font-size:15px;line-height:22px;color:#D6D9D7}
+
 </style>
 </head>
 <body>
