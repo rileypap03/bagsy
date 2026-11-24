@@ -570,7 +570,7 @@ function showSplash(){
 }
 function setTheme(c){ if(innerWidth<520){ document.documentElement.style.background=c; document.body.style.background=c; } }
 function clearTheme(){ topCol=''; setTimeout(topTint,0); document.documentElement.style.background=''; document.body.style.background=''; document.documentElement.classList.add('app'); }
-function endSplash(){ if(splashSeen) return; splashSeen=true; clearTheme(); topCol=''; topTint(); const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
+function endSplash(){ if(splashSeen) return; splashSeen=true; document.documentElement.classList.add('ready'); clearTheme(); topCol=''; topTint(); const el=document.getElementById('splash'); if(el){ el.style.transition='opacity .25s'; el.style.opacity='0'; setTimeout(()=>el.remove(),260); } }
 const sheetHead = (id,title,sub) => `<div class="shead"><span class="grab" aria-hidden="true"></span><div class="row"><div class="col"><span id="${id}" style="font-size:20px;font-weight:700;letter-spacing:-.02em">${title}</span>${sub?`<span class="cap muted">${sub}</span>`:''}</div><button class="round" style="box-shadow:none;background:var(--surface-page)" data-act="closeSheet" aria-label="Close">${I(IC.close,18,2.4)}</button></div></div>`;
 const wrap = (type,id,inner) => `<div class="scrim" data-act="closeSheet"><div class="sheet" data-type="${type}" role="dialog" aria-modal="true" aria-labelledby="${id}" data-stop>${inner}</div></div>`;
 function savingSheet(){

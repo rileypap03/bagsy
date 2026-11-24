@@ -149,6 +149,8 @@ details summary::-webkit-details-marker{display:none}
 .setup{color:var(--brass-deep);font-weight:600;text-decoration:underline;text-underline-offset:2px}
 /* on phones the page itself is the app: no dark frame behind the status bar */
 html,body{background:var(--surface-page)}   /* light grey from the start: Safari and the home-screen app colour the status bar from this */
+/* until the splash has played, everything is the splash yellow, so opening the app never flashes grey first */
+@media(max-width:519px){html:not(.ready),html:not(.ready) body,html:not(.ready) #phone{background:#ECB54E}}
 html.app,html.app body{background:var(--surface-page)}
 @media(min-width:520px){html,body,html.app,html.app body{background:#2A2C30}}
 /* deposit marker on a part's progress bar */
