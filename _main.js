@@ -42,7 +42,7 @@ let topCol=''; // last colour painted behind the status bar
 let splashSeen = false;   // the splash plays every time the app is opened fresh (not when you switch back to it)
 const rgbOf=c=>{ if(c[0]==='#'){ const n=parseInt(c.slice(1),16); return [n>>16&255,n>>8&255,n&255]; } return (c.match(/\d+/g)||[0,0,0]).slice(0,3).map(Number); };
 const dim=(c,a)=>{ const [r,g,b]=rgbOf(c); return `rgb(${Math.round(r*(1-a)+17*a)},${Math.round(g*(1-a)+18*a)},${Math.round(b*(1-a)+20*a)})`; };
-let splashCol='#ECB64C';
+const splashCol='#EDB54C'; // the new splash's background as an iPhone actually shows it (measured from a screenshot, 24 Nov)
 const view=document.getElementById('view'), layer=document.getElementById('layer');
 const params = new URLSearchParams(location.search);
 if(params.get('surprise')) ls.set('bagsy-open-surprise', params.get('surprise'));
@@ -562,12 +562,7 @@ function showSplash(){
   document.getElementById('phone').appendChild(el); topCol=''; topTint();
   const v=el.querySelector('video'); v.muted=true; v.playsInline=true; v.onended=()=>setTimeout(endSplash,1000); // hold on the shut case and the logo for a beat
   const logo=el.querySelector('.splogo'); v.addEventListener('timeupdate',()=>{ if(v.currentTime>=2.42) logo.classList.add('on'); }); // the lid shuts at about 2.45s
-  /* colour the status-bar strip from the top edge of the video as it plays (the shot's yellow drifts a little) */
-  const cv=document.createElement('canvas'); cv.width=16; cv.height=2; const cx=cv.getContext('2d',{willReadFrequently:true});
-  const sample=()=>{ try{ const vw=v.videoWidth, vh=v.videoHeight; if(!vw) return; const W=el.clientWidth, H=el.clientHeight, k=Math.max(W/vw,H/vh), sy=Math.max(0,(vh*k-H)/2/k), sx=Math.max(0,(vw*k-W)/2/k);
-    cx.drawImage(v,sx,sy,vw-2*sx,Math.max(2,vh*.006),0,0,16,2); const d=cx.getImageData(0,0,16,2).data; let r=0,g=0,b=0; for(let i=0;i<d.length;i+=4){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; } const n=d.length/4;
-    splashCol=`rgb(${r/n|0},${g/n|0},${b/n|0})`; topTint(); }catch(e){} };
-  v.addEventListener('loadeddata',sample); v.addEventListener('timeupdate',sample); v.onerror=()=>setTimeout(endSplash,800);
+ v.onerror=()=>setTimeout(endSplash,800);
   /* if the phone won't autoplay (Low Power Mode does this), show the finished splash still for a moment instead of a play button */
   let still=false; const fallback=()=>{ if(still||splashSeen) return; still=true; v.remove(); const im=document.createElement('img'); im.src='img/splash-end.jpg'; im.alt=''; im.style.cssText='width:100%;height:100%;object-fit:cover'; el.insertBefore(im,el.firstChild); logo.classList.add('on'); setTimeout(endSplash,1400); };
   const go=()=>v.play().catch(fallback); go(); setTimeout(()=>{ if(v.paused&&v.currentTime===0) fallback(); },900); setTimeout(endSplash,7000);
@@ -928,7 +923,7 @@ function miniBar(){ const mb=document.querySelector('#chrome .minibar'), m=docum
   const show=m.getBoundingClientRect().bottom<80; if(show===mb.classList.contains('on')) return;
   mb.classList.toggle('on',show); if(show){ mb.removeAttribute('inert'); mb.removeAttribute('aria-hidden'); } else { mb.setAttribute('inert',''); mb.setAttribute('aria-hidden','true'); } }
 function topTint(){ const bar=document.getElementById('topbar'); if(!bar) return; const m=document.querySelector('#view .mast'); let c='#F1F3F2';
-  if(document.getElementById('splash')&&!splashSeen) c=splashCol; // sampled from the video's own top edge, so the strip always matches
+  if(document.getElementById('splash')&&!splashSeen) c=splashCol; // fixed: sampling the video read the colour differently from how the phone displays it, and flickered when items crossed the top edge
   if(m&&m.dataset.sky){ const r=m.getBoundingClientRect(); if(r.bottom>bar.offsetHeight+60) c=m.dataset.sky; }
   if(layer.querySelector('.scrim')) c=dim(c,.5); // a sheet is open: darken the strip with the same scrim
   if(c===topCol) return; topCol=c; bar.style.background=c; const t=document.querySelector('meta[name=theme-color]'); if(t) t.setAttribute('content',c); }

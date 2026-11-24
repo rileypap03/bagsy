@@ -162,8 +162,8 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left;margin:0}
 @keyframes toastIn{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.toast{animation:none}}
 /* splash: video's own yellow behind it while it loads */
-.splash{background:linear-gradient(#F0B64A,#E9AF45);overflow:hidden}
-/* the status-bar strip above the splash takes its colour from the video itself (see showSplash) */
+.splash{background:#EDB54C;overflow:hidden}
+/* the status-bar strip above the splash uses splashCol in topTint, matched to the video as displayed */
 
 /* feedback card on You */
 .fbcard{width:100%;text-align:left;border:0;font:inherit;color:inherit;cursor:pointer;gap:12px;align-items:center}
